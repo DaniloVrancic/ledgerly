@@ -1,0 +1,31 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Personal financial data must never be committed
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.ledgerly
+backups/
+exports/
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# Editors and local Claude settings
+.vscode/
+.idea/
+.claude/settings.local.json

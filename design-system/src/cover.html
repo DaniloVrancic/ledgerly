@@ -1,0 +1,42 @@
+<!-- @dsCard height=288 -->
+<style>
+  html, body { margin: 0; background: var(--background); }
+  .c { position: relative; width: 960px; height: 288px; overflow: hidden; background: var(--background); font-family: var(--font-sans); }
+  .t { position: absolute; left: 32px; bottom: 32px; width: 440px; }
+  .n { font-weight: 600; font-size: 88px; line-height: .95; letter-spacing: -0.02em; color: var(--text-primary); }
+  .s { margin-top: 12px; font-size: 14px; line-height: 20px; color: var(--text-secondary); }
+  .ground { fill: var(--brand-tile); }
+  .cover { fill: var(--brand-cover); } .coverd { fill: var(--brand-cover-dark); }
+  .page { fill: var(--brand-page); } .pageb { fill: var(--brand-page-shade); }
+  .edge { fill: var(--brand-edge); } .edged { fill: var(--brand-edge-dark); }
+  .top { fill: var(--brand-bar); } .left { fill: var(--brand-bar-left); } .right { fill: var(--brand-bar-right); }
+  .in { fill: var(--brand-income); } .out { fill: var(--brand-expense); }
+</style>
+<div class="c">
+  <!-- Blocks: brand-tile slab 480x288, ledger rhombus 400x200 in brand-cover and brand-page, coins r40 in brand-income and brand-expense.
+       Arrangement: one slab bleeding off the top, right and bottom, with the ledger lying on it and the columns rising through it.
+       Pattern: the literal motif, because the mark is an isometric ledger: rhombi and columns on one 2:1 axis.
+       Scales: steps of space-5 and space-9, no corners, since isometric faces are cut square. -->
+  <svg width="960" height="288" viewBox="0 0 960 288" aria-hidden="true" style="position:absolute;inset:0">
+    <rect class="ground" x="480" y="0" width="480" height="288"/>
+    <polygon class="coverd" points="520,206 720,306 720,322 520,222"/>
+    <polygon class="cover" points="720,306 920,206 920,222 720,322"/>
+    <polygon class="cover" points="520,206 720,106 920,206 720,306"/>
+    <polygon class="edged" points="536,192 720,284 720,308 536,216"/>
+    <polygon class="edge" points="720,284 904,192 904,216 720,308"/>
+    <polygon class="page" points="536,192 628,146 812,238 720,284"/>
+    <polygon class="pageb" points="628,146 720,100 904,192 812,238"/>
+    <polygon class="left" points="760,44 792,60 792,204 760,188"/>
+    <polygon class="right" points="792,60 824,44 824,188 792,204"/>
+    <polygon class="top" points="760,44 792,28 824,44 792,60"/>
+    <polygon class="left" points="704,100 736,116 736,232 704,216"/>
+    <polygon class="right" points="736,116 768,100 768,216 736,232"/>
+    <polygon class="top" points="704,100 736,84 768,100 736,116"/>
+    <polygon class="left" points="648,156 680,172 680,260 648,244"/>
+    <polygon class="right" points="680,172 712,156 712,244 680,260"/>
+    <polygon class="top" points="648,156 680,140 712,156 680,172"/>
+    <circle class="out" cx="576" cy="84" r="40"/>
+    <circle class="in" cx="888" cy="76" r="40"/>
+  </svg>
+  <div class="t"><div class="n">Ledgerly</div><div class="s">A calm way to record money and understand it at a glance.</div></div>
+</div>

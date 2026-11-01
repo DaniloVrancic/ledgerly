@@ -1,0 +1,10 @@
+{
+  "name": "ledgerly",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Offline-first personal finance manager for private use.",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=24"
+  }
+}
