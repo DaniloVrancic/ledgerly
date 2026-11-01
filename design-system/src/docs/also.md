@@ -2,9 +2,9 @@
 
 ## App icon and wordmark
 
-**Temporary, because Ledgerly is a working name.** The mark is an open isometric ledger on deep forest. A three-column chart rises out of its pages, with a green euro coin for income and a coral dollar coin for expense. Below 36px the page rules drop out and the coins grow. The colours are the `brand-*` tokens, which are the same in both themes, because an app icon does not change with the theme. The wordmark is Inter semibold with slightly tight spacing.
+**Temporary, because Ledgerly is a working name.** The mark is an open isometric ledger on deep forest, with a solid mint line chart rising out of its pages. Three data points sit on the line, and an arrow ends it. It stays in forest and mint, with no currency signs and no income or expense colours. At 36px and below, the line thickens, and the data points, page rules and ribbon drop out. Use it at 32px or larger in the interface. The colours are the `brand-*` tokens, which are the same in both themes, because an app icon does not change with the theme. The wordmark is Inter semibold with slightly tight spacing.
 
-The same ledger, as line art, is the empty-state style. The line icon set includes it as `ledger`, along with `dollar` and `euro`.
+The same ledger, as line art, is the empty-state style. The line icon set includes it as `ledger`.
 
 ## Print
 

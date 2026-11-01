@@ -43,7 +43,7 @@
   const groups = [...new Set(L.catalog.map((c) => c.group))];
   const prose = [['overview', 'Overview', 'README'], ['contrast', 'Colour and contrast', 'contrast'], ['dataviz', 'Data visualisation', 'data-visualisation'], ['categories', 'Custom categories', 'categories'], ['writing', 'Writing', 'writing'], ['brand', 'Brand, print, privacy', 'also'], ['usage', 'Usage rules', 'usage']];
 
-  nav.innerHTML = `<div class="lg-inline" style="padding:0 12px 12px">${L.appIcon(28)}<span class="lg-wordmark">Ledgerly</span></div>`
+  nav.innerHTML = `<div class="lg-inline" style="padding:0 12px 12px">${L.appIcon(32)}<span class="lg-wordmark">Ledgerly</span></div>`
     + prose.map(([id, name]) => `<a href="#${id}">${name}</a>`).join('')
     + groups.map((g) => `<div class="site-nav__group">${g}</div><a href="#group-${g}">All ${g.toLowerCase()}</a>`).join('')
     + '<div class="site-nav__group">Files</div><a href="#tokens">Tokens</a>';

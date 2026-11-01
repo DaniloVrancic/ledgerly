@@ -9,13 +9,15 @@
   .cover { fill: var(--brand-cover); } .coverd { fill: var(--brand-cover-dark); }
   .page { fill: var(--brand-page); } .pageb { fill: var(--brand-page-shade); }
   .edge { fill: var(--brand-edge); } .edged { fill: var(--brand-edge-dark); }
-  .top { fill: var(--brand-bar); } .left { fill: var(--brand-bar-left); } .right { fill: var(--brand-bar-right); }
-  .in { fill: var(--brand-income); } .out { fill: var(--brand-expense); }
+  .chart { fill: none; stroke: var(--brand-chart); stroke-width: 24; stroke-linecap: round; stroke-linejoin: round; }
+  .side { fill: none; stroke: var(--brand-chart-side); stroke-width: 24; stroke-linecap: round; stroke-linejoin: round; }
+  .halo { fill: none; stroke: var(--brand-tile); stroke-width: 42; stroke-linecap: round; stroke-linejoin: round; }
+  .dot { fill: var(--brand-tile); }
 </style>
 <div class="c">
-  <!-- Blocks: brand-tile slab 480x288, ledger rhombus 400x200 in brand-cover and brand-page, coins r40 in brand-income and brand-expense.
-       Arrangement: one slab bleeding off the top, right and bottom, with the ledger lying on it and the columns rising through it.
-       Pattern: the literal motif, because the mark is an isometric ledger: rhombi and columns on one 2:1 axis.
+  <!-- Blocks: brand-tile slab 480x288, ledger rhombus 400x200 in brand-cover and brand-page, line chart 24 wide in brand-chart.
+       Arrangement: one slab bleeding off the top, right and bottom, with the ledger lying on it and the line chart rising out of it.
+       Pattern: the literal motif, because the mark is an isometric ledger: rhombi on one 2:1 axis and one rising line.
        Scales: steps of space-5 and space-9, no corners, since isometric faces are cut square. -->
   <svg width="960" height="288" viewBox="0 0 960 288" aria-hidden="true" style="position:absolute;inset:0">
     <rect class="ground" x="480" y="0" width="480" height="288"/>
@@ -26,17 +28,21 @@
     <polygon class="edge" points="720,284 904,192 904,216 720,308"/>
     <polygon class="page" points="536,192 628,146 812,238 720,284"/>
     <polygon class="pageb" points="628,146 720,100 904,192 812,238"/>
-    <polygon class="left" points="760,44 792,60 792,204 760,188"/>
-    <polygon class="right" points="792,60 824,44 824,188 792,204"/>
-    <polygon class="top" points="760,44 792,28 824,44 792,60"/>
-    <polygon class="left" points="704,100 736,116 736,232 704,216"/>
-    <polygon class="right" points="736,116 768,100 768,216 736,232"/>
-    <polygon class="top" points="704,100 736,84 768,100 736,116"/>
-    <polygon class="left" points="648,156 680,172 680,260 648,244"/>
-    <polygon class="right" points="680,172 712,156 712,244 680,260"/>
-    <polygon class="top" points="648,156 680,140 712,156 680,172"/>
-    <circle class="out" cx="576" cy="84" r="40"/>
-    <circle class="in" cx="888" cy="76" r="40"/>
+    <polyline class="halo" points="580,186 664,110 736,160 884,30" transform="translate(6 6)"/>
+    <polyline class="halo" points="828,30 884,30 884,86" transform="translate(6 6)"/>
+    <polyline class="side" points="580,186 664,110 736,160 884,30" transform="translate(12 12)"/>
+    <polyline class="side" points="828,30 884,30 884,86" transform="translate(12 12)"/>
+    <polyline class="side" points="580,186 664,110 736,160 884,30" transform="translate(9 9)"/>
+    <polyline class="side" points="828,30 884,30 884,86" transform="translate(9 9)"/>
+    <polyline class="side" points="580,186 664,110 736,160 884,30" transform="translate(6 6)"/>
+    <polyline class="side" points="828,30 884,30 884,86" transform="translate(6 6)"/>
+    <polyline class="side" points="580,186 664,110 736,160 884,30" transform="translate(3 3)"/>
+    <polyline class="side" points="828,30 884,30 884,86" transform="translate(3 3)"/>
+    <polyline class="chart" points="580,186 664,110 736,160 884,30"/>
+    <polyline class="chart" points="828,30 884,30 884,86"/>
+    <circle class="dot" cx="580" cy="186" r="7"/>
+    <circle class="dot" cx="664" cy="110" r="7"/>
+    <circle class="dot" cx="736" cy="160" r="7"/>
   </svg>
   <div class="t"><div class="n">Ledgerly</div><div class="s">A calm way to record money and understand it at a glance.</div></div>
 </div>

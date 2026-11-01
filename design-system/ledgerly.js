@@ -1,6 +1,6 @@
 /* @ds-bundle: {"format":4,"namespace":"Ledgerly","components":[{"name":"ColourTokens"},{"name":"TypeScale"},{"name":"Money"},{"name":"HiddenAmounts"},{"name":"IconSet"},{"name":"Button"},{"name":"TextInput"},{"name":"SearchField"},{"name":"Switch"},{"name":"SegmentedControl"},{"name":"Checkbox"},{"name":"Card"},{"name":"ListRow"},{"name":"SectionHeader"},{"name":"Tooltip"},{"name":"BottomSheet"},{"name":"Dialog"},{"name":"Toast"},{"name":"BottomNav"},{"name":"NavRail"},{"name":"Sidebar"},{"name":"ReadOnlyLabel"},{"name":"StatePatterns"},{"name":"Keypad"},{"name":"CategoryChip"},{"name":"AddTransaction"},{"name":"TransactionRow"},{"name":"TransferRow"},{"name":"DayGroupHeader"},{"name":"BalanceCard"},{"name":"MetricTile"},{"name":"BudgetBar"},{"name":"GoalProgress"},{"name":"NeedsAttentionRow"},{"name":"RecurringBadge"},{"name":"CalendarDayCell"},{"name":"BackupStatus"},{"name":"QuickAddWidget"},{"name":"CategoryIdentity"},{"name":"CategoryRow"},{"name":"IconPicker"},{"name":"CategoryColourPicker"},{"name":"AccountPicker"},{"name":"CategoryEditor"},{"name":"ChartGroupedBars"},{"name":"ChartDonut"},{"name":"ChartTrendLines"},{"name":"ChartWeekdayBars"},{"name":"ChartBalanceLine"},{"name":"ChartCalendarHeat"},{"name":"ChartYearLedger"},{"name":"ChartPalette"},{"name":"ChartEmpty"},{"name":"AppIcon"},{"name":"PrintStyle"},{"name":"ScreenHome"},{"name":"ScreenAddTransaction"},{"name":"ScreenCategories"},{"name":"ScreenCategoryEditor"},{"name":"ScreenHistory"},{"name":"ScreenCalendar"},{"name":"ScreenAnalytics"}]} */
 window.Ledgerly = window.Ledgerly || {};
-window.Ledgerly.tokens = {"color":["background","surface-1","surface-2","surface-3","surface-overlay","surface-inverse","on-inverse","border-inverse","surface-tint","text-primary","text-secondary","text-tertiary","text-disabled","border-subtle","border-control","primary","on-primary","primary-tint","positive","positive-fill","positive-tint","negative","negative-fill","negative-tint","warning","warning-fill","warning-mark","on-warning","warning-tint","neutral","neutral-fill","neutral-tint","accent","on-accent","accent-text","accent-forest","accent-lake","accent-plum","accent-slate","scrim","brand-tile","brand-page","brand-page-shade","brand-edge","brand-edge-dark","brand-cover","brand-cover-dark","brand-bar","brand-bar-left","brand-bar-right","brand-income","brand-income-side","brand-expense","brand-expense-side","cat-1","cat-2","cat-3","cat-4","cat-5","cat-6","cat-7","cat-8","cat-9","cat-10","cat-11","cat-12","chart-1","chart-2","chart-3","chart-4","chart-5","chart-6","chart-other","chart-grid","chart-axis","heat-0","heat-1","heat-2","heat-3","heat-4","heat-5","on-heat-low","on-heat-high"],"type":[["balance","€12,483.36"],["amount-large","−€1,482.50"],["amount","39.12 KM"],["amount-small","€20.00"],["title-large","Transactions"],["title","This month"],["subtitle","Konzum Čengić Vila"],["body","Backed up 2 days ago."],["body-small","Expected lowest balance before payday."],["label","Confirm"],["caption","Estimate"]],"categories":[["housing","Housing",1,"home"],["food","Food",2,"basket"],["transport","Transportation",3,"bus"],["shopping","Shopping",4,"bag"],["health","Health",5,"pulse"],["entertainment","Entertainment",6,"ticket"],["bills","Bills",7,"receipt"],["travel","Travel",8,"plane"],["education","Education",9,"book"],["personal","Personal Care",10,"sparkle"],["gifts","Gifts",11,"gift"],["subscriptions","Subscriptions",12,"repeat"],["salary","Salary",3,"briefcase"],["freelance","Freelance",4,"pen"],["business","Business",6,"store"],["investments","Investments",5,"trend"],["rental","Rental Income",7,"key"],["other","Other",0,"dots"]],"accents":[{"id":"forest","name":"Forest"},{"id":"lake","name":"Lake"},{"id":"plum","name":"Plum"},{"id":"slate","name":"Slate"}]};
+window.Ledgerly.tokens = {"color":["background","surface-1","surface-2","surface-3","surface-overlay","surface-inverse","on-inverse","border-inverse","surface-tint","text-primary","text-secondary","text-tertiary","text-disabled","border-subtle","border-control","primary","on-primary","primary-tint","positive","positive-fill","positive-tint","negative","negative-fill","negative-tint","warning","warning-fill","warning-mark","on-warning","warning-tint","neutral","neutral-fill","neutral-tint","accent","on-accent","accent-text","accent-forest","accent-lake","accent-plum","accent-slate","scrim","brand-tile","brand-page","brand-page-shade","brand-edge","brand-edge-dark","brand-cover","brand-cover-dark","brand-shadow","brand-chart","brand-chart-side","cat-1","cat-2","cat-3","cat-4","cat-5","cat-6","cat-7","cat-8","cat-9","cat-10","cat-11","cat-12","chart-1","chart-2","chart-3","chart-4","chart-5","chart-6","chart-other","chart-grid","chart-axis","heat-0","heat-1","heat-2","heat-3","heat-4","heat-5","on-heat-low","on-heat-high"],"type":[["balance","€12,483.36"],["amount-large","−€1,482.50"],["amount","39.12 KM"],["amount-small","€20.00"],["title-large","Transactions"],["title","This month"],["subtitle","Konzum Čengić Vila"],["body","Backed up 2 days ago."],["body-small","Expected lowest balance before payday."],["label","Confirm"],["caption","Estimate"]],"categories":[["housing","Housing",1,"home"],["food","Food",2,"basket"],["transport","Transportation",3,"bus"],["shopping","Shopping",4,"bag"],["health","Health",5,"pulse"],["entertainment","Entertainment",6,"ticket"],["bills","Bills",7,"receipt"],["travel","Travel",8,"plane"],["education","Education",9,"book"],["personal","Personal Care",10,"sparkle"],["gifts","Gifts",11,"gift"],["subscriptions","Subscriptions",12,"repeat"],["salary","Salary",3,"briefcase"],["freelance","Freelance",4,"pen"],["business","Business",6,"store"],["investments","Investments",5,"trend"],["rental","Rental Income",7,"key"],["other","Other",0,"dots"]],"accents":[{"id":"forest","name":"Forest"},{"id":"lake","name":"Lake"},{"id":"plum","name":"Plum"},{"id":"slate","name":"Slate"}]};
 // One line icon set: 24px grid, 1.75 stroke, round caps, no fills. Original to Ledgerly.
 (function (L) {
   const P = {
@@ -89,59 +89,46 @@ window.Ledgerly.tokens = {"color":["background","surface-1","surface-2","surface
   };
 })(window.Ledgerly = window.Ledgerly || {});
 
-// The Ledgerly mark: an open isometric ledger with a rising chart and two currency coins.
-// One drawing serves the app icon, the exported SVG files and the empty-state line art.
+// The Ledgerly mark: an open isometric ledger with a solid line chart rising out of it.
+// One drawing serves the app icon, the SVG files and the empty-state line art.
 (function (L) {
   const pts = (list) => list.map((p) => p.join(',')).join(' ');
   const poly = (list, fill) => `<polygon points="${pts(list)}" fill="${fill}"/>`;
+  const path = (d, fill) => `<path d="${d}" fill="${fill}"/>`;
+  const stroke = (d, color, width, shift) => `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"${shift ? ` transform="translate(${shift} ${shift})"` : ''}/>`;
 
-  // An upright isometric column standing at (x, y).
-  function column(x, y, hw, h, c) {
-    const hh = hw / 2;
-    return poly([[x - hw, y - h], [x, y - h + hh], [x, y + hh], [x - hw, y]], c.barLeft)
-      + poly([[x, y - h + hh], [x + hw, y - h], [x + hw, y], [x, y + hh]], c.barRight)
-      + poly([[x - hw, y - h], [x, y - h - hh], [x + hw, y - h], [x, y - h + hh]], c.bar);
+  function ledger(c, small) {
+    const ribbon = small ? '' : path('M63.5 78.5l5-2.5v13.5l-2.5-.5-2.5 3z', c.chart);
+    const rules = small ? '' : `<path d="M25 66l18 9M20.5 68.5l18 9" stroke="${c.edgeDark}" stroke-width="1.5" stroke-linecap="round"/>`;
+    return `${poly([[8, 76], [48, 94], [88, 76], [48, 58]], c.shadow)}<g transform="translate(48 72) scale(.94) translate(-48 -72)">${poly([[9, 70], [48, 89.5], [48, 93], [9, 73.5]], c.coverDark)}${poly([[48, 89.5], [87, 70], [87, 73.5], [48, 93]], c.cover)}${poly([[9, 70], [48, 50.5], [87, 70], [48, 89.5]], c.cover)}${poly([[12, 64], [48, 82], [48, 88], [12, 70]], c.edgeDark)}${path('M48 82Q57 72 66 76Q75 64 84 64V70L48 88Z', c.edge)}${ribbon}${path('M12 64Q21 54 30 58L66 76Q57 72 48 82Z', c.page)}${path('M30 58Q39 46 48 46L84 64Q75 64 66 76Z', c.pageShade)}${rules}<path d="M30 58l36 18" stroke="${c.edgeDark}" stroke-width="${small ? 2.5 : 1.5}" stroke-linecap="round"/></g>`;
   }
 
-  const GLYPH = {
-    dollar: 'M4.2-3.4C3.4-5 1.9-5.8 0-5.8c-2.5 0-4.2 1.3-4.2 3 0 2 2.1 2.5 4.2 2.9s4.2.9 4.2 2.9c0 1.7-1.7 3-4.2 3-1.9 0-3.4-.8-4.2-2.4M0-8.2V8.2',
-    euro: 'M5.2-5.6A6.9 6.9 0 1 0 5.2 5.6M-7.4-1.7H2.6M-7.4 1.7H1.8',
-  };
-  function coin(x, y, r, tilt, glyph, c, fill, side, weight) {
-    return `<g transform="translate(${x} ${y}) skewY(${tilt})"><circle cx="1.6" cy="1.6" r="${r}" fill="${side}"/><circle r="${r}" fill="${fill}"/><path d="${GLYPH[glyph]}" transform="scale(${r / 11})" fill="none" stroke="${c.tile}" stroke-width="${weight}" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+  // The line chart: a halo lifts it off the pages, stacked strokes give it depth.
+  const POINTS = [[21, 60], [37, 40], [52, 50]];
+  function chart(c, small) {
+    const weight = small ? 7.5 : 6;
+    const tip = small ? 17 : 15;
+    const line = `M${POINTS.map((p) => p.join(' ')).join('L')}L78 16`;
+    const head = `M${78 - tip} 16H78V${16 + tip}`;
+    const both = (color, width, shift) => stroke(line, color, width, shift) + stroke(head, color, width, shift);
+    const depth = [3, 2.25, 1.5, 0.75].map((shift) => both(c.chartSide, weight, shift)).join('');
+    const dots = small ? '' : POINTS.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.9" fill="${c.tile}"/>`).join('');
+    return both(c.tile, weight + 5, 1.5) + depth + both(c.chart, weight) + dots;
   }
 
   const VARS = {};
-  ['tile', 'page', 'page-shade', 'edge', 'edge-dark', 'cover', 'cover-dark', 'bar', 'bar-left', 'bar-right', 'income', 'income-side', 'expense', 'expense-side'].forEach((n) => {
+  ['tile', 'shadow', 'page', 'page-shade', 'edge', 'edge-dark', 'cover', 'cover-dark', 'chart', 'chart-side'].forEach((n) => {
     VARS[n.replace(/-(\w)/, (_, a) => a.toUpperCase())] = `var(--brand-${n})`;
   });
 
-  // Art only, on the 96 grid. Small sizes drop the fine lines and enlarge the coins.
-  L.markArt = function (c, small) {
-    const cover = poly([[9, 70], [48, 89.5], [48, 93], [9, 73.5]], c.coverDark)
-      + poly([[48, 89.5], [87, 70], [87, 73.5], [48, 93]], c.cover)
-      + poly([[9, 70], [48, 50.5], [87, 70], [48, 89.5]], c.cover);
-    const path = (d, fill) => `<path d="${d}" fill="${fill}"/>`;
-    const block = poly([[12, 64], [48, 82], [48, 88], [12, 70]], c.edgeDark)
-      + path('M48 82Q57 72 66 76Q75 64 84 64V70L48 88Z', c.edge);
-    const pages = path('M12 64Q21 54 30 58L66 76Q57 72 48 82Z', c.page)
-      + path('M30 58Q39 46 48 46L84 64Q75 64 66 76Z', c.pageShade);
-    const rules = small ? '' : `<path d="M25 66l18 9M20.5 68.5l18 9" stroke="${c.edgeDark}" stroke-width="1.5" stroke-linecap="round"/>`;
-    const spine = `<path d="M30 58l36 18" stroke="${c.edgeDark}" stroke-width="1.5" stroke-linecap="round"/>`;
-    const ribbon = path('M63.5 78.5l5-2.5v13.5l-2.5-.5-2.5 3z', c.expense);
-    const columns = column(60, 59, 6.5, 34, c) + column(49, 64.5, 6.5, 24, c) + column(38, 70, 6.5, 14, c);
-    const r = small ? 13 : 11;
-    const coins = coin(23, small ? 33 : 34, r, 10, 'dollar', c, c.expense, c.expenseSide, small ? 3 : 2.400)
-      + coin(small ? 75 : 77, small ? 27 : 26, r, -10, 'euro', c, c.income, c.incomeSide, small ? 3 : 2.400);
-    return cover + block + ribbon + pages + rules + spine + columns + coins;
-  };
+  // At 36px and below the line thickens and the fine details drop out.
+  L.markArt = (c, small) => ledger(c, small) + chart(c, small);
 
   // The full tile. `c` is a palette of token values; the default follows tokens.css.
   L.markSvg = function (size, c, label) {
     const p = c || VARS;
-    const small = size <= 36;
     const a = label === false ? 'aria-hidden="true"' : 'role="img" aria-label="Ledgerly"';
-    return `<svg class="lg-appicon" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 96 96" ${a}><rect width="96" height="96" rx="22" fill="${p.tile}"/>${L.markArt(p, small)}</svg>`;
+    return `<svg class="lg-appicon" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 96 96" ${a}><rect width="96" height="96" rx="22" fill="${p.tile}"/>${L.markArt(p, size <= 36)}</svg>`;
   };
   L.appIcon = (size) => L.markSvg(size);
 
@@ -497,7 +484,7 @@ window.Ledgerly.tokens = {"color":["background","surface-1","surface-2","surface
   ui.rail = (active, st) => `<nav class="lg-rail" aria-label="Main">${['home', 'list', 'plus', 'chart', 'calendar', 'wallet', 'menu'].map((ic, i) => `<button type="button" class="lg-rail__item ${i === active ? 'is-selected' : ''} ${st && st[i] ? `is-${st[i]}` : ''}" aria-label="${['Home', 'Transactions', 'Add', 'Analytics', 'Calendar', 'Accounts', 'More'][i]}">${icon(ic, 24)}</button>`).join('')}</nav>`;
   ui.sidebar = (active, st) => {
     const items = [['Home', 'home'], ['Transactions', 'list'], ['Analytics', 'chart'], ['Calendar', 'calendar'], ['Budgets', 'pie'], ['Goals', 'target'], ['Accounts', 'wallet'], ['Reports', 'page'], ['Settings', 'gear']];
-    return `<nav class="lg-side" aria-label="Main"><div class="lg-inline" style="padding:8px 12px 16px">${L.appIcon(28)}<span class="lg-wordmark">Ledgerly</span></div>${items.map(([n, ic], i) => `<button type="button" class="lg-side__item ${i === active ? 'is-selected' : ''} ${st && st[i] ? `is-${st[i]}` : ''}"${i === active ? ' aria-current="page"' : ''}>${icon(ic, 20)}${n}</button>`).join('')}<div style="flex:1;min-height:16px"></div>${ui.readOnly()}</nav>`;
+    return `<nav class="lg-side" aria-label="Main"><div class="lg-inline" style="padding:8px 12px 16px">${L.appIcon(32)}<span class="lg-wordmark">Ledgerly</span></div>${items.map(([n, ic], i) => `<button type="button" class="lg-side__item ${i === active ? 'is-selected' : ''} ${st && st[i] ? `is-${st[i]}` : ''}"${i === active ? ' aria-current="page"' : ''}>${icon(ic, 20)}${n}</button>`).join('')}<div style="flex:1;min-height:16px"></div>${ui.readOnly()}</nav>`;
   };
   ui.readOnly = () => `<div class="lg-readonly">${icon('eye', 16)}<span>Read-only copy<br>File from 29 Oct 2026, 08:14</span></div>`;
   ui.state = (kind) => {
@@ -595,7 +582,7 @@ window.Ledgerly.tokens = {"color":["background","surface-1","surface-2","surface
     }[state];
     return `<div class="lg-card lg-card--flush"><div class="lg-backup lg-backup--${state}"><span class="lg-backup__icon">${icon(m[0], 24)}</span><span class="lg-row__body"><span class="lg-row__title" style="font-size:.875rem;line-height:1.25rem">${m[1]}</span><span class="lg-row__sub">${m[2]}</span>${m[3] ? `<span style="display:block;margin-top:8px">${ui.button(m[3], { kind: 'secondary', small: true })}</span>` : ''}</span></div></div>`;
   };
-  ui.widget = (st) => `<div class="lg-widget ${st ? `is-${st}` : ''}"><span class="lg-widget__brand">${L.appIcon(28)}Add expense</span><button type="button" class="lg-widget__add ${st ? `is-${st}` : ''}" aria-label="Add a transaction">${icon('plus', 24)}</button></div>`;
+  ui.widget = (st) => `<div class="lg-widget ${st ? `is-${st}` : ''}"><span class="lg-widget__brand">${L.appIcon(32)}Add expense</span><button type="button" class="lg-widget__add ${st ? `is-${st}` : ''}" aria-label="Add a transaction">${icon('plus', 24)}</button></div>`;
 
 
   // ---- Categories ----
@@ -925,7 +912,7 @@ window.Ledgerly.tokens = {"color":["background","surface-1","surface-2","surface
     const food = D.budgets().find((b) => b.state === 'warning');
     const recent = D.transactions.filter((t) => t.date <= D.TODAY).slice(0, 4);
     return `<div class="lg-phone">
-      <div class="lg-phone__head">${`<span class="lg-inline">${L.appIcon(24)}<span class="lg-wordmark">Ledgerly</span></span>`}<button type="button" class="lg-icon-btn" aria-label="Hide amounts" data-hide>${L.icon('eye', 20)}</button></div>
+      <div class="lg-phone__head">${`<span class="lg-inline">${L.appIcon(32)}<span class="lg-wordmark">Ledgerly</span></span>`}<button type="button" class="lg-icon-btn" aria-label="Hide amounts" data-hide>${L.icon('eye', 20)}</button></div>
       <div class="lg-phone__body">
         ${ui.balance()}
         <div class="lg-card"><div class="lg-between"><span class="label">Lowest before payday</span><span class="lg-badge">Estimate</span></div><div class="amount-large">${L.money(f.lowest)}</div><div class="body-small lg-muted">Around 27 Nov, after ${L.money(f.bills)} of bills. Next salary 28 Nov.</div></div>
@@ -1382,7 +1369,7 @@ window.Ledgerly.tokens = {"color":["background","surface-1","surface-2","surface
   add('Charts', 'ChartPalette', 170, 'Six rank slots, a neutral Other and the sequential heat scale.', { provides: 'Slots, by rank.', do: 'Reuse slot 1 for the largest item.', dont: 'Use semantic colours as slots.' }, () => `<div class="ds-swatches">${[1, 2, 3, 4, 5, 6].map((i) => `<div class="ds-swatch"><i style="background:var(--chart-${i})"></i><span>chart-${i}</span></div>`).join('')}<div class="ds-swatch"><i style="background:var(--chart-other)"></i><span>chart-other</span></div></div><div style="margin-top:12px">${L.heatKey()}</div>`);
   add('Charts', 'ChartEmpty', 180, 'What a chart shows before there is data.', { provides: 'The question.', do: 'Keep the question as the title.', dont: 'Draw fake data.' }, () => L.charts.empty('Where did my money go?'));
 
-  add('Brand', 'AppIcon', 200, 'An open isometric ledger with a rising chart, a green euro and a coral dollar. Temporary, because Ledgerly is a working name.', { provides: 'A size.', do: 'Use the fixed colours in both themes.', dont: 'Recolour the coins. They carry the income and expense meaning.' }, () => `<div class="lg-stack"><div class="ds-iconrow">${L.appIcon(128)}${L.appIcon(72)}${L.appIcon(48)}${L.appIcon(32)}${L.appIcon(24)}</div><div class="lg-inline"><span class="lg-badge lg-badge--proto">Temporary</span>${L.appIcon(32)}<span class="lg-wordmark">Ledgerly</span></div></div>`);
+  add('Brand', 'AppIcon', 200, 'An open isometric ledger with a solid line chart rising out of it. Temporary, because Ledgerly is a working name.', { provides: 'A size.', do: 'Use it at 32px or larger in the interface.', dont: 'Add currency signs or income and expense colours. The mark stays forest and mint.' }, () => `<div class="lg-stack"><div class="ds-iconrow">${L.appIcon(128)}${L.appIcon(72)}${L.appIcon(48)}${L.appIcon(32)}${L.appIcon(24)}</div><div class="lg-inline"><span class="lg-badge lg-badge--proto">Temporary</span>${L.appIcon(32)}<span class="lg-wordmark">Ledgerly</span></div></div>`);
   add('Brand', 'PrintStyle', 460, 'PDF reports: light only and readable in black and white.', { provides: 'Report data.', do: 'Use patterns and words instead of colour.', dont: 'Print the dark theme.' }, () => {
     const m = D.month(D.CURRENT);
     const top = m.ranked[0].amount;

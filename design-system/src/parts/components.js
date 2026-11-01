@@ -111,7 +111,7 @@
   ui.rail = (active, st) => `<nav class="lg-rail" aria-label="Main">${['home', 'list', 'plus', 'chart', 'calendar', 'wallet', 'menu'].map((ic, i) => `<button type="button" class="lg-rail__item ${i === active ? 'is-selected' : ''} ${st && st[i] ? `is-${st[i]}` : ''}" aria-label="${['Home', 'Transactions', 'Add', 'Analytics', 'Calendar', 'Accounts', 'More'][i]}">${icon(ic, 24)}</button>`).join('')}</nav>`;
   ui.sidebar = (active, st) => {
     const items = [['Home', 'home'], ['Transactions', 'list'], ['Analytics', 'chart'], ['Calendar', 'calendar'], ['Budgets', 'pie'], ['Goals', 'target'], ['Accounts', 'wallet'], ['Reports', 'page'], ['Settings', 'gear']];
-    return `<nav class="lg-side" aria-label="Main"><div class="lg-inline" style="padding:8px 12px 16px">${L.appIcon(28)}<span class="lg-wordmark">Ledgerly</span></div>${items.map(([n, ic], i) => `<button type="button" class="lg-side__item ${i === active ? 'is-selected' : ''} ${st && st[i] ? `is-${st[i]}` : ''}"${i === active ? ' aria-current="page"' : ''}>${icon(ic, 20)}${n}</button>`).join('')}<div style="flex:1;min-height:16px"></div>${ui.readOnly()}</nav>`;
+    return `<nav class="lg-side" aria-label="Main"><div class="lg-inline" style="padding:8px 12px 16px">${L.appIcon(32)}<span class="lg-wordmark">Ledgerly</span></div>${items.map(([n, ic], i) => `<button type="button" class="lg-side__item ${i === active ? 'is-selected' : ''} ${st && st[i] ? `is-${st[i]}` : ''}"${i === active ? ' aria-current="page"' : ''}>${icon(ic, 20)}${n}</button>`).join('')}<div style="flex:1;min-height:16px"></div>${ui.readOnly()}</nav>`;
   };
   ui.readOnly = () => `<div class="lg-readonly">${icon('eye', 16)}<span>Read-only copy<br>File from 29 Oct 2026, 08:14</span></div>`;
   ui.state = (kind) => {
@@ -209,7 +209,7 @@
     }[state];
     return `<div class="lg-card lg-card--flush"><div class="lg-backup lg-backup--${state}"><span class="lg-backup__icon">${icon(m[0], 24)}</span><span class="lg-row__body"><span class="lg-row__title" style="font-size:.875rem;line-height:1.25rem">${m[1]}</span><span class="lg-row__sub">${m[2]}</span>${m[3] ? `<span style="display:block;margin-top:8px">${ui.button(m[3], { kind: 'secondary', small: true })}</span>` : ''}</span></div></div>`;
   };
-  ui.widget = (st) => `<div class="lg-widget ${st ? `is-${st}` : ''}"><span class="lg-widget__brand">${L.appIcon(28)}Add expense</span><button type="button" class="lg-widget__add ${st ? `is-${st}` : ''}" aria-label="Add a transaction">${icon('plus', 24)}</button></div>`;
+  ui.widget = (st) => `<div class="lg-widget ${st ? `is-${st}` : ''}"><span class="lg-widget__brand">${L.appIcon(32)}Add expense</span><button type="button" class="lg-widget__add ${st ? `is-${st}` : ''}" aria-label="Add a transaction">${icon('plus', 24)}</button></div>`;
 
 
   // ---- Categories ----

@@ -123,8 +123,7 @@ Measured by the build with the WCAG 2 formula, and the build fails if any pair f
 | `chart-5` | `surface-1` | Mark | 3:1 | 5.47:1 | 4.39:1 |
 | `chart-6` | `surface-1` | Mark | 3:1 | 9.83:1 | 9.48:1 |
 | `chart-other` | `surface-1` | Mark | 3:1 | 3.72:1 | 4.96:1 |
-| `brand-income` | `brand-tile` | Mark | 3:1 | 6.35:1 | 6.35:1 |
-| `brand-expense` | `brand-tile` | Mark | 3:1 | 4.52:1 | 4.52:1 |
+| `brand-chart` | `brand-tile` | Mark | 3:1 | 8.05:1 | 8.05:1 |
 | `brand-page` | `brand-tile` | Mark | 3:1 | 11.27:1 | 11.27:1 |
 | `on-heat-low` | `heat-0` | Text | 4.5:1 | 14.26:1 | 15.07:1 |
 | `on-heat-low` | `heat-1` | Text | 4.5:1 | 12.31:1 | 13.64:1 |

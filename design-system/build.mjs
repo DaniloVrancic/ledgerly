@@ -204,12 +204,6 @@ if (out) {
     write(p(`components/${c.name}/preview.html`), `<!-- @dsCard group="${c.group}" height=${c.height}${page2} -->\n<div id="root" style="padding:12px"></div>\n<script>Ledgerly.renderCard(${JSON.stringify(c.name)}, document.getElementById('root'));</script>\n`);
   }
   write(p('components/Cover/preview.html'), read('src/cover.html'));
-  write(p('design-system.json'), JSON.stringify({
-    v: 3, layout: 'files', createdOnFiles: { v: 1, at: new Date().toISOString() },
-    title: 'Ledgerly Design System', namespace: 'Ledgerly', libraries: [], sections: {}, groups: [], assetGroups: {}, blobs: {},
-    docs: { readme: 'project/README.md', sections: [] },
-    lastChange: { by: 'DaniloVrancic', at: new Date().toISOString(), via: 'Claude Code', note: 'First complete design system' },
-  }, null, 2));
   const files = {};
   for (const x of ['tokens.json', 'tokens.css', 'README.md', 'colour-and-contrast.md', 'data-visualisation.md', 'writing.md', 'brand-print-privacy.md', 'custom-categories.md', 'assets/Logos/README.md', 'usage-rules.md', 'components/bundle.js', 'components/bundle.css', 'components/index.d.ts', 'components/Cover/preview.html']) files[`project/${x}`] = `project/${x}`;
   for (const c of catalog) for (const f2 of ['README.md', 'preview.html']) files[`project/components/${c.name}/${f2}`] = `project/components/${c.name}/${f2}`;

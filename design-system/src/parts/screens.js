@@ -35,7 +35,7 @@
     const food = D.budgets().find((b) => b.state === 'warning');
     const recent = D.transactions.filter((t) => t.date <= D.TODAY).slice(0, 4);
     return `<div class="lg-phone">
-      <div class="lg-phone__head">${`<span class="lg-inline">${L.appIcon(24)}<span class="lg-wordmark">Ledgerly</span></span>`}<button type="button" class="lg-icon-btn" aria-label="Hide amounts" data-hide>${L.icon('eye', 20)}</button></div>
+      <div class="lg-phone__head">${`<span class="lg-inline">${L.appIcon(32)}<span class="lg-wordmark">Ledgerly</span></span>`}<button type="button" class="lg-icon-btn" aria-label="Hide amounts" data-hide>${L.icon('eye', 20)}</button></div>
       <div class="lg-phone__body">
         ${ui.balance()}
         <div class="lg-card"><div class="lg-between"><span class="label">Lowest before payday</span><span class="lg-badge">Estimate</span></div><div class="amount-large">${L.money(f.lowest)}</div><div class="body-small lg-muted">Around 27 Nov, after ${L.money(f.bills)} of bills. Next salary 28 Nov.</div></div>

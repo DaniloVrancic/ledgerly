@@ -57,7 +57,7 @@ Short do and don't examples for every component.
 | ChartYearLedger | Keep days in columns, so rent and payday line up down the year. | Use a grid of squares by week. |
 | ChartPalette | Reuse slot 1 for the largest item. | Use semantic colours as slots. |
 | ChartEmpty | Keep the question as the title. | Draw fake data. |
-| AppIcon | Use the fixed colours in both themes. | Recolour the coins. They carry the income and expense meaning. |
+| AppIcon | Use it at 32px or larger in the interface. | Add currency signs or income and expense colours. The mark stays forest and mint. |
 | PrintStyle | Use patterns and words instead of colour. | Print the dark theme. |
 | ScreenHome | Check figures against the other screens. | Treat this as implemented. |
 | ScreenAddTransaction | Tap the account pill and watch the chips follow it. | Treat this as implemented. |
