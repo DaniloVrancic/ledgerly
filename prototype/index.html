@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ledgerly prototype</title>
+<link rel="stylesheet" href="../design-system/tokens/tokens.css">
+<link rel="stylesheet" href="../design-system/ledgerly.css">
+<link rel="stylesheet" href="prototype.css">
+<script src="../design-system/ledgerly.js"></script>
+<script src="js/ledger.js"></script>
+<script src="js/core.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/home.js"></script>
+<script src="js/add.js"></script>
+<script src="js/tx.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/analytics.js"></script>
+<script src="js/money.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/flows.js"></script>
+</head>
+<body>
+<div id="ledgerly-prototype" class="lg-root"></div>
+<script>
+  // ?phone, ?tablet or ?desktop opens one layout. The prototype otherwise fits the window.
+  var q = new URLSearchParams(window.location.search);
+  var layout = ['phone', 'tablet', 'desktop'].find(function (k) { return q.has(k); });
+  window.LP.mount(document.getElementById('ledgerly-prototype'), { layout: layout, theme: q.get('theme') || undefined, route: q.get('route') || undefined });
+</script>
+</body>
+</html>

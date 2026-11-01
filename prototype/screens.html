@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ledgerly screens</title>
+<link rel="stylesheet" href="../design-system/tokens/tokens.css">
+<link rel="stylesheet" href="../design-system/ledgerly.css">
+<link rel="stylesheet" href="prototype.css">
+<script src="../design-system/ledgerly.js"></script>
+<script src="js/ledger.js"></script>
+<script src="js/core.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/home.js"></script>
+<script src="js/add.js"></script>
+<script src="js/tx.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/analytics.js"></script>
+<script src="js/money.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/flows.js"></script>
+<script src="js/gallery.js"></script>
+</head>
+<body>
+<div id="wall" class="lg-root"></div>
+<script>
+  // ?tier=1, 2 or 3 shows one wall of stills. They come from the same views as the live prototype.
+  var tier = new URLSearchParams(window.location.search).get('tier') || '1';
+  window.LP.gallery(document.getElementById('wall'), tier);
+</script>
+</body>
+</html>
