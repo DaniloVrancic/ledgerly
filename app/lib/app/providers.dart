@@ -103,6 +103,11 @@ final subcategoryTotalsProvider = StreamProvider.autoDispose.family<List<Categor
   (ref, arg) => ref.watch(entryRepositoryProvider).watchSubcategoryTotals(arg.$1, arg.$2.start, arg.$2.end),
 );
 
+/// Each day's figures from start to end, for the calendar.
+final dayTotalsProvider = StreamProvider.autoDispose.family<Map<String, DayTotals>, (String, String)>(
+  (ref, range) => ref.watch(entryRepositoryProvider).watchDayTotals(range.$1, range.$2),
+);
+
 // ---- Derived ----
 
 final todayProvider = Provider<String>((ref) => ref.watch(clockProvider).today());
