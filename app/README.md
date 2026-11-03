@@ -37,7 +37,7 @@ dart run build_runner build
 | Categories | Add your own categories and subcategories: name, icon from the line set or your own picture, colour, and which accounts offer them. You can archive them, or delete them by moving their entries to another category. Also reachable from All on the Add sheet. |
 | Accounts | Balances, a balance check that saves any difference as Untracked, and a nudge when Cash has not been checked for two weeks. |
 | Statement import | Settings › Import bank statement. Choose a CSV export from your bank (comma, semicolon or tab, UTF-8 or Windows-1250), check the guessed date, amount and description columns, and choose the account. Ledgerly then shows what is already recorded (same amount within 3 days), what is missing, likely duplicates and unreadable lines. Only ticked rows are added, in one step with Undo. Without a category, money out waits in Needs Review; money in needs an income category first. |
-| Backups | Every 3 days, the newest 3 kept, the newest replacing the oldest. Restore saves the current data as a safety copy first. |
+| Backups | Every 3 days, the newest 3 kept, the newest replacing the oldest. Restore saves the current data as a safety copy first. Settings › Backups › Choose a folder puts them in a folder you pick (Android's folder picker or the Windows folder dialog), such as an SD card or a folder a sync app copies to your computer; the current backups are copied there. If that folder can't be reached, backups go to Ledgerly's own folder and Home and Backups say so. |
 
 ## The money rules
 
@@ -90,12 +90,12 @@ Nothing syncs today, but the data is shaped so a server can be added later witho
 | Android | The app's private folder | `Android/data/app.ledgerly.ledgerly/files/backups` |
 | Windows | `%APPDATA%\app.ledgerly\ledgerly\ledgerly.sqlite` | `Documents\Ledgerly\Backups` |
 
-Each backup is a complete SQLite file. Uninstalling the app on Android removes its backup folder too, so copy a backup somewhere else now and then.
+Each backup is a complete SQLite file. Uninstalling the app on Android removes its own backup folder too, so choose a folder of your own under Settings › Backups, or copy a backup somewhere else now and then.
 
 ## Not built yet
 
 - The notebook, reports and monthly close.
 - Splitting one payment across several categories, and purchases in a third currency. The postings model supports both; only the screens are missing.
-- Export to an open `.ledgerly` file with a password, and choosing a backup folder outside the app on Android.
+- Export to an open `.ledgerly` file with a password.
 - App lock, the home-screen widget, and a read-only desktop copy.
 - A custom app icon. It still uses the Flutter default.

@@ -16,50 +16,73 @@ import 'data/backup/backup_service.dart';
 import 'data/backup/backup_store.dart';
 import 'data/database/app_database.dart';
 import 'data/database/connection.dart';
+import 'data/repositories/settings_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final clock = SystemClock();
   final file = await databaseFile();
   final folder = await backupFolder();
   final work = Directory(p.join((await getTemporaryDirectory()).path, 'ledgerly-work'));
-  runApp(AppRoot(databaseFile: file, backupFolder: folder, workDir: work));
+  final db = openDatabase(file);
+  // Backups go to the folder the person chose, or the default one when it is out of reach.
+  final chosen = await SettingsRepository(db, clock).read(SettingKeys.backupFolder);
+  final resolved = await resolveBackupStore(chosen, folder);
+  // A restore opens a new database; backups always snapshot the one that is open.
+  var live = db;
+  runApp(
+    AppRoot(
+      databaseFile: file,
+      database: db,
+      clock: clock,
+      onOpened: (opened) => live = opened,
+      backups: BackupService(
+        store: resolved.store,
+        defaultStore: LocalFolderStore(folder),
+        usingFallback: resolved.fallback,
+        workDir: work,
+        clock: clock,
+        writeSnapshot: (path) => live.snapshotTo(path),
+      ),
+    ),
+  );
 }
 
 class AppRoot extends StatefulWidget {
-  const AppRoot({super.key, required this.databaseFile, required this.backupFolder, required this.workDir});
+  const AppRoot({
+    super.key,
+    required this.databaseFile,
+    required this.database,
+    required this.clock,
+    required this.backups,
+    required this.onOpened,
+  });
 
   final File databaseFile;
-  final Directory backupFolder;
 
-  /// A private folder for snapshots on their way into the backup folder.
-  final Directory workDir;
+  /// Opened in main, before the app is shown.
+  final AppDatabase database;
+  final SystemClock clock;
+  final BackupService backups;
+
+  /// Told about the database a restore opens.
+  final ValueChanged<AppDatabase> onOpened;
 
   @override
   State<AppRoot> createState() => _AppRootState();
 }
 
 class _AppRootState extends State<AppRoot> {
-  final _clock = SystemClock();
-  late AppDatabase _db;
-  late BackupService _backups;
+  late AppDatabase _db = widget.database;
+  late final BackupService _backups = widget.backups;
+  SystemClock get _clock => widget.clock;
 
   /// Changes after a restore, so every screen starts again on the restored data.
   int _generation = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _open();
-  }
-
   void _open() {
     _db = openDatabase(widget.databaseFile);
-    _backups = BackupService(
-      store: LocalFolderStore(widget.backupFolder),
-      workDir: widget.workDir,
-      clock: _clock,
-      writeSnapshot: _db.snapshotTo,
-    );
+    widget.onOpened(_db);
   }
 
   /// Saves the current data as a safety copy, then swaps in the backup.

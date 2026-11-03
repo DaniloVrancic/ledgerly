@@ -9,6 +9,9 @@ abstract final class SettingKeys {
   static const lastAccountId = 'last_account_id';
   static const lastTransfer = 'last_transfer';
   static const onboarded = 'onboarded';
+
+  /// The backup folder the person chose, as ChosenFolder JSON. Empty for the default.
+  static const backupFolder = 'backup_folder';
 }
 
 class SettingsRepository extends Repository {

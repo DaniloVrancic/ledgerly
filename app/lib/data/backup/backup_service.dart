@@ -22,15 +22,23 @@ class BackupFile {
 class BackupService {
   BackupService({
     required this.store,
+    BackupStore? defaultStore,
+    this.usingFallback = false,
     required this.workDir,
     required this.clock,
     required this.writeSnapshot,
     this.every = const Duration(days: 3),
     this.keep = 3,
-  });
+  }) : defaultStore = defaultStore ?? store;
 
-  /// Where backups are kept.
-  final BackupStore store;
+  /// Where backups are kept now: the default folder or one the person chose.
+  BackupStore store;
+
+  /// The app's own backup folder, used when no folder is chosen or a chosen one is out of reach.
+  final BackupStore defaultStore;
+
+  /// A folder was chosen but could not be reached, so backups go to [defaultStore].
+  bool usingFallback;
 
   /// A private folder for the snapshot before it goes into the store.
   final Directory workDir;
