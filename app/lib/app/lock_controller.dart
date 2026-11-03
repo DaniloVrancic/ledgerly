@@ -33,6 +33,9 @@ final lockStoreProvider = Provider<LockStore>((ref) => MemoryLockStore());
 final pinHasherProvider = Provider<PinHasher>((ref) => const PinHasher());
 final biometricsProvider = Provider<Biometrics>((ref) => const NoBiometrics());
 
+/// Hides the app in the recent-apps screen while the lock is on. Does nothing by default.
+final secureWindowProvider = Provider<Future<void> Function(bool on)>((ref) => (_) async {});
+
 const lockDelays = [Duration.zero, Duration(minutes: 1), Duration(minutes: 5), Duration(minutes: 15)];
 const minPinLength = 4;
 const maxPinLength = 8;
@@ -83,6 +86,7 @@ class LockController extends Notifier<LockState> {
     _settings = await _store.read();
     final available = await ref.read(biometricsProvider).available();
     _publish(locked: _settings.enabled, biometricsAvailable: available);
+    await ref.read(secureWindowProvider)(_settings.enabled);
   }
 
   void _publish({bool? locked, bool? biometricsAvailable}) {
@@ -99,9 +103,11 @@ class LockController extends Notifier<LockState> {
   }
 
   Future<void> _save(LockSettings next, {bool? locked}) async {
+    final wasEnabled = _settings.enabled;
     _settings = next;
     await _store.write(next);
     _publish(locked: locked);
+    if (next.enabled != wasEnabled) await ref.read(secureWindowProvider)(next.enabled);
   }
 
   Future<UnlockResult> unlockWithPin(String pin) async {

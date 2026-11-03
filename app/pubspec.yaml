@@ -38,6 +38,8 @@ dependencies:
   # Scrypt, ChaCha20-Poly1305, HKDF and HMAC for password-protected data files (age format),
   # and PBKDF2 for the app lock PIN. Pure Dart.
   pointycastle: ^4.0.0
+  # The fingerprint or face unlock for the app lock, through the system prompt.
+  local_auth: ^3.0.2
 
 dev_dependencies:
   flutter_test:
