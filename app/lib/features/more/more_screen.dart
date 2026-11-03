@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../core/money.dart';
 import '../../data/repositories/entry_repository.dart';
+import '../../domain/budget_plan.dart';
 import '../../ui/icons/ledger_icon.dart';
 import '../../ui/theme/ledgerly_colors.dart';
 import '../accounts/accounts_screen.dart';
+import '../budgets/budgets_screen.dart';
 import '../categories/categories_screen.dart';
 import '../entries/needs_review_screen.dart';
 import '../repeats/repeats_screen.dart';
@@ -26,6 +28,8 @@ class MoreScreen extends ConsumerWidget {
     final setAside = ref.watch(setAsideProvider).value ?? 0;
     final goals = (ref.watch(goalsProvider).value ?? const []).where((g) => g.isOpen).length;
     final customCount = ref.watch(categoryBookProvider).topLevel('expense').where((c) => c.isCustom).length;
+    final budgets = ref.watch(budgetLinesProvider);
+    final over = budgets.where((l) => l.view.state == BudgetState.over).length;
 
     Widget item(String icon, String title, String subtitle, Widget screen) => ListTile(
       leading: LedgerIcon(icon),
@@ -50,6 +54,14 @@ class MoreScreen extends ConsumerWidget {
                       ? 'Plan for something you want'
                       : '$goals ${goals == 1 ? 'goal' : 'goals'}, ${formatMoney(setAside, 'EUR')} set aside',
                   const GoalsScreen(),
+                ),
+                item(
+                  'pie',
+                  'Budgets',
+                  budgets.isEmpty
+                      ? 'Set a limit for a category'
+                      : '${budgets.length} ${budgets.length == 1 ? 'budget' : 'budgets'}${over == 0 ? ', all within the limit' : ', $over over'}',
+                  const BudgetsScreen(),
                 ),
                 item(
                   'repeat',
