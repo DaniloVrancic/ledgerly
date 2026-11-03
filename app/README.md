@@ -6,7 +6,7 @@ It is built with Flutter for Android and Windows. Nothing needs a network connec
 
 ## Run it
 
-The project needs Flutter 3.47.9 (Dart 3.13). The SDK must sit in a folder without spaces, because Flutter's native build hooks break on paths like `E:\Program Files\…`. On this machine it is installed at `E:\SDK\flutter-3.47.9`.
+The project needs Flutter 3.47.9 (Dart 3.13). The Android app runs on Android 8.0 (API 26) or newer. The SDK must sit in a folder without spaces, because Flutter's native build hooks break on paths like `E:\Program Files\…`. On this machine it is installed at `E:\SDK\flutter-3.47.9`.
 
 ```bash
 cd app
@@ -94,9 +94,12 @@ Nothing syncs today, but the data is shaped so a server can be added later witho
 
 Each backup is a complete SQLite file. Uninstalling the app on Android removes its own backup folder too, so choose a folder of your own under Settings › Backups, or copy a backup somewhere else now and then.
 
+## App icon
+
+The icon comes from `design-system/brand/app-icon.svg`. On Android it is an adaptive vector icon in `android/app/src/main/res/drawable/ic_launcher_*.xml`, converted by hand from the SVG and scaled into the safe zone, with a one-colour version for themed icons. If the SVG changes, change those files to match.
+
 ## Not built yet
 
 - The notebook, reports and monthly close.
 - Splitting one payment across several categories, and purchases in a third currency. The postings model supports both; only the screens are missing.
 - The home-screen widget and a read-only desktop copy.
-- A custom app icon. It still uses the Flutter default.
