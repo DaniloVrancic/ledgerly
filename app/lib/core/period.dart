@@ -59,6 +59,20 @@ Period periodOf(String day, {int startDay = 1}) {
 Period previousPeriod(Period p, {int startDay = 1}) => periodOf(Day.add(p.start, -1), startDay: startDay);
 Period nextPeriod(Period p, {int startDay = 1}) => periodOf(Day.add(p.end, 1), startDay: startDay);
 
+/// The week, Monday to Sunday, that contains [day]. Weekly budgets use it.
+Period weekOf(String day) {
+  final start = Day.add(day, -Day.weekday(day));
+  final end = Day.add(start, 6);
+  return Period(
+    start: start,
+    end: end,
+    label: '${Day.short(start)} to ${Day.short(end)}',
+    short: Day.short(start),
+  );
+}
+
+Period previousWeek(Period p) => weekOf(Day.add(p.start, -1));
+
 /// The [count] periods ending with the one that contains [day], oldest first.
 List<Period> lastPeriods(String day, int count, {int startDay = 1}) {
   final out = <Period>[periodOf(day, startDay: startDay)];

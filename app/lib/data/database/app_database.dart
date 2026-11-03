@@ -11,14 +11,25 @@ part 'app_database.g.dart';
 const databaseFileName = 'ledgerly';
 
 @DriftDatabase(
-  tables: [Accounts, Categories, CategoryAccounts, Entries, Postings, Repeats, Goals, GoalMoves, Settings],
+  tables: [
+    Accounts,
+    Categories,
+    CategoryAccounts,
+    Entries,
+    Postings,
+    Repeats,
+    Goals,
+    GoalMoves,
+    Budgets,
+    Settings,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   /// Bump this and add a step in [migration] whenever a table changes.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -31,8 +42,8 @@ class AppDatabase extends _$AppDatabase {
       await seedDefaults(this);
     },
     onUpgrade: (m, from, to) async {
-      // Add one step per schema version here, for example:
-      // if (from < 2) await m.addColumn(entries, entries.someNewColumn);
+      // One step per schema version, oldest first.
+      if (from < 2) await m.createTable(budgets);
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
