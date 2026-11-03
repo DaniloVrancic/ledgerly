@@ -10,6 +10,7 @@ import '../../domain/repeat_schedule.dart';
 import '../../ui/icons/ledger_icon.dart';
 import '../../ui/theme/ledgerly_colors.dart';
 import '../../ui/widgets/common.dart';
+import '../statement_import/statement_import_screen.dart';
 import 'backup_status.dart';
 import 'backups_screen.dart';
 
@@ -107,6 +108,17 @@ class SettingsScreen extends ConsumerWidget {
               subtitle: const _BackupSubtitle(),
               trailing: const LedgerIcon('chevron'),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BackupsScreen())),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: ListTile(
+              leading: const LedgerIcon('upload'),
+              title: const Text('Import bank statement'),
+              subtitle: const Text('Add what is missing from a CSV file'),
+              trailing: const LedgerIcon('chevron'),
+              onTap: () =>
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const StatementImportScreen())),
             ),
           ),
           const SizedBox(height: 12),

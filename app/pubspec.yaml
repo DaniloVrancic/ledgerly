@@ -27,6 +27,8 @@ dependencies:
   image_picker: ^1.2.4
   # The design system's line icons are SVG paths.
   flutter_svg: ^2.2.4
+  # The system's own file picker, for bank statements, data files and the backup folder.
+  file_picker: ^13.3.2
 
 dev_dependencies:
   flutter_test:

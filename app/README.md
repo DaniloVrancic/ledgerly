@@ -36,6 +36,7 @@ dart run build_runner build
 | Savings | A goal has a target and an optional date. Setting money aside keeps it in your account but marks it as not free to spend. Each goal shows what to set aside per month, whether you are on track, and when you will get there at your recent pace. Finishing a goal frees its money for the purchase. |
 | Categories | Add your own categories and subcategories: name, icon from the line set or your own picture, colour, and which accounts offer them. You can archive them, or delete them by moving their entries to another category. Also reachable from All on the Add sheet. |
 | Accounts | Balances, a balance check that saves any difference as Untracked, and a nudge when Cash has not been checked for two weeks. |
+| Statement import | Settings › Import bank statement. Choose a CSV export from your bank (comma, semicolon or tab, UTF-8 or Windows-1250), check the guessed date, amount and description columns, and choose the account. Ledgerly then shows what is already recorded (same amount within 3 days), what is missing, likely duplicates and unreadable lines. Only ticked rows are added, in one step with Undo. Without a category, money out waits in Needs Review; money in needs an income category first. |
 | Backups | Every 3 days, the newest 3 kept, the newest replacing the oldest. Restore saves the current data as a safety copy first. |
 
 ## The money rules
@@ -93,7 +94,7 @@ Each backup is a complete SQLite file. Uninstalling the app on Android removes i
 
 ## Not built yet
 
-- The notebook, reports, monthly close, and bank statement CSV import.
+- The notebook, reports and monthly close.
 - Splitting one payment across several categories, and purchases in a third currency. The postings model supports both; only the screens are missing.
 - Export to an open `.ledgerly` file with a password, and choosing a backup folder outside the app on Android.
 - App lock, the home-screen widget, and a read-only desktop copy.
