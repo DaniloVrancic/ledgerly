@@ -35,6 +35,9 @@ dependencies:
   sqlite3: ^3.8.0
   # SHA-256 of every file in a data file, to prove it arrived whole.
   crypto: ^3.0.8
+  # Scrypt, ChaCha20-Poly1305, HKDF and HMAC for password-protected data files (age format),
+  # and PBKDF2 for the app lock PIN. Pure Dart.
+  pointycastle: ^4.0.0
 
 dev_dependencies:
   flutter_test:
