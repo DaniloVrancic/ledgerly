@@ -156,6 +156,17 @@ class GoalMoves extends Table with SyncColumns {
   TextColumn get note => text().nullable()();
 }
 
+/// A spending limit for every month (following the chosen month start) or every week
+/// (Monday to Sunday). Without a category it covers all spending. Amounts are in EUR.
+class Budgets extends Table with SyncColumns {
+  /// A category or subcategory, or null for all spending.
+  TextColumn get categoryId => text().nullable().references(Categories, #id)();
+  IntColumn get limitMinor => integer()();
+
+  /// monthly or weekly.
+  TextColumn get every => text()();
+}
+
 /// Preferences on this device. Not synced.
 class Settings extends Table {
   TextColumn get key => text()();
