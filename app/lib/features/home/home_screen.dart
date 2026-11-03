@@ -9,8 +9,10 @@ import '../../core/money.dart';
 import '../../core/period.dart';
 import '../../app/shell_tabs.dart';
 import '../../data/repositories/account_repository.dart';
+import '../../data/repositories/budget_repository.dart';
 import '../../data/repositories/entry_repository.dart';
 import '../../data/repositories/entry_view.dart';
+import '../../domain/budget_plan.dart';
 import '../../domain/insights.dart';
 import '../../ui/icons/ledger_icon.dart';
 import '../../ui/theme/ledgerly_colors.dart';
@@ -18,6 +20,8 @@ import '../../ui/widgets/category_avatar.dart';
 import '../../ui/widgets/common.dart';
 import '../../ui/widgets/entry_tile.dart';
 import '../../ui/widgets/money_text.dart';
+import '../budgets/budget_screen.dart';
+import '../budgets/budgets_screen.dart';
 import '../entries/entries_screen.dart';
 import '../entries/entry_details_screen.dart';
 import '../entries/needs_review_screen.dart';
@@ -78,6 +82,7 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ],
+          const _BudgetWarning(),
           const SectionHeader('Where it went'),
           _TopCategories(period: period, totals: totals),
           const SectionHeader('Recent'),
@@ -318,6 +323,59 @@ class _MonthTiles extends StatelessWidget {
   }
 }
 
+/// The one budget that most needs attention, from 80% of its limit. Hidden otherwise.
+class _BudgetWarning extends ConsumerWidget {
+  const _BudgetWarning();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final worst = ref
+        .watch(budgetLinesProvider)
+        .where((l) => l.view.state != BudgetState.normal)
+        .fold<BudgetLine?>(null, (w, l) => w == null || l.view.ratio > w.view.ratio ? l : w);
+    if (worst == null) return const SizedBox();
+    final c = context.colors;
+    final v = worst.view;
+    final name = budgetName(worst.budget, ref.watch(categoryBookProvider));
+    final over = v.state == BudgetState.over;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: LedgerCard(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => BudgetScreen(budgetId: worst.budget.id)),
+        ),
+        child: Row(
+          children: [
+            LedgerIcon('alert', color: over ? c.negative : c.warning),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    over
+                        ? '$name is ${formatMoney(-v.leftMinor, 'EUR')} over its limit'
+                        : '$name is at ${(v.ratio * 100).floor()}%',
+                    style: context.text.label,
+                  ),
+                  Text(
+                    over
+                        ? '${formatMoney(v.spentMinor, 'EUR')} of ${formatMoney(v.limitMinor, 'EUR')}'
+                        : '${formatMoney(v.leftMinor, 'EUR')} left for ${v.daysLeft} ${v.daysLeft == 1 ? 'day' : 'days'}',
+                    style: context.text.caption,
+                  ),
+                ],
+              ),
+            ),
+            const LedgerIcon('chevron'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TopCategories extends ConsumerWidget {
   const _TopCategories({required this.period, required this.totals});
 
@@ -329,6 +387,11 @@ class _TopCategories extends ConsumerWidget {
     final c = context.colors;
     final book = ref.watch(categoryBookProvider);
     final top = totals.spendingByCategory.take(5).toList();
+    // A category with a monthly budget shows that budget's bar instead of the comparison bar.
+    final budgets = {
+      for (final l in ref.watch(budgetLinesProvider))
+        if (l.budget.categoryId != null && l.budget.every == BudgetEvery.monthly) l.budget.categoryId!: l,
+    };
     if (top.isEmpty) return const LedgerCard(child: Text('Nothing spent this month yet.'));
     final largest = top.first.amountMinor;
     return Card(
@@ -362,10 +425,12 @@ class _TopCategories extends ConsumerWidget {
                     ),
                     Padding(
                       padding: const EdgeInsets.only(left: 44, top: 4),
-                      child: LedgerBar(
-                        value: item.amountMinor / largest,
-                        color: c.category(book[item.categoryId]?.colorSlot ?? 0),
-                      ),
+                      child: budgets[item.categoryId] == null
+                          ? LedgerBar(
+                              value: item.amountMinor / largest,
+                              color: c.category(book[item.categoryId]?.colorSlot ?? 0),
+                            )
+                          : BudgetRow(line: budgets[item.categoryId]!, showName: false),
                     ),
                   ],
                 ),

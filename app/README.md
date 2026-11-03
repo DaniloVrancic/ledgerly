@@ -31,6 +31,7 @@ dart run build_runner build
 | Entries | Grouped by day with each day's net. Search ignores Bosnian diacritics and also finds amounts. Filter by type, category or account, and swipe to delete with Undo. In an entry's details every field saves itself, and you can duplicate it, record a refund, record a repayment, or make it repeat. |
 | Insights | Any month compared with the one before and with the usual level: income, spending, net, savings rate, spending per category with its share of income, income per source, a six-month chart, and a few plain observations. Every figure opens its entries. |
 | Repeats | Daily, weekly, monthly or yearly. A repeat turns Due on its date and waits until you mark it paid or skip it. When the amount varies, it asks for this time's amount. Typing a title that already repeats pays its next one. Shows the monthly and yearly cost of subscriptions. |
+| Budgets | A monthly or weekly limit for all spending, a category or a subcategory, in EUR. Monthly budgets follow your month start, and weeks run Monday to Sunday. Each shows what is spent and left, a marker for how far the period has gone, how much is safe to spend per day, and the last six periods. It warns at 80% and shows when it goes over. Home shows the budget bar on its category rows and the one budget that most needs attention. |
 | Savings | A goal has a target and an optional date. Setting money aside keeps it in your account but marks it as not free to spend. Each goal shows what to set aside per month, whether you are on track, and when you will get there at your recent pace. Finishing a goal frees its money for the purchase. |
 | Categories | Add your own categories and subcategories: name, icon from the line set or your own picture, colour, and which accounts offer them. You can archive them, or delete them by moving their entries to another category. Also reachable from All on the Add sheet. |
 | Accounts | Balances, a balance check that saves any difference as Untracked, and a nudge when Cash has not been checked for two weeks. |
@@ -91,7 +92,7 @@ Each backup is a complete SQLite file. Uninstalling the app on Android removes i
 
 ## Not built yet
 
-- Budgets, the calendar, the notebook, reports, monthly close, and bank statement CSV import.
+- The calendar, the notebook, reports, monthly close, and bank statement CSV import.
 - Splitting one payment across several categories, and purchases in a third currency. The postings model supports both; only the screens are missing.
 - Export to an open `.ledgerly` file with a password, and choosing a backup folder outside the app on Android.
 - App lock, the home-screen widget, and a read-only desktop copy.
