@@ -94,6 +94,10 @@ Nothing syncs today, but the data is shaped so a server can be added later witho
 
 Each backup is a complete SQLite file. Uninstalling the app on Android removes its own backup folder too, so choose a folder of your own under Settings › Backups, or copy a backup somewhere else now and then.
 
+## On phones
+
+Ledgerly draws edge to edge under transparent status and navigation bars, whose icons follow light and dark. Phones stay in portrait; tablets and desktop windows turn freely. Android shows a splash in the icon's green with its artwork (the system splash on Android 12 and later), and back gestures preview the page underneath (predictive back).
+
 ## App icon
 
 The icon comes from `design-system/brand/app-icon.svg`. On Android it is an adaptive vector icon in `android/app/src/main/res/drawable/ic_launcher_*.xml`, converted by hand from the SVG and scaled into the safe zone, with a one-colour version for themed icons. If the SVG changes, change those files to match.
