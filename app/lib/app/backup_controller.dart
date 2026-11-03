@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/backup/backup_service.dart';
 import '../data/database/connection.dart';
+import '../data/export/ledgerly_file.dart';
 import '../data/repositories/settings_repository.dart';
 import 'providers.dart';
 
@@ -104,5 +105,11 @@ final pickBackupFolderProvider = Provider<Future<ChosenFolder?> Function(ChosenF
 
 /// Replaces the data with a backup. Set up in main.dart, where the database is opened.
 final restoreBackupProvider = Provider<Future<void> Function(BackupFile)>(
+  (ref) => throw UnimplementedError('Overridden in main.dart'),
+);
+
+/// Replaces all data with a checked data file, after saving a safety copy. Returns where the
+/// safety copy went. Set up in main.dart.
+final replaceDataProvider = Provider<Future<String> Function(LedgerlyPreview)>(
   (ref) => throw UnimplementedError('Overridden in main.dart'),
 );
