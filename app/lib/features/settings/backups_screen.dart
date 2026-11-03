@@ -102,7 +102,7 @@ class BackupsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SelectableText(service.folder.path, style: context.text.bodySmall),
+                SelectableText(service.store.displayName, style: context.text.bodySmall),
                 const SizedBox(height: 8),
                 Text(
                   'Each backup is a complete SQLite file of your data. On Android the folder is in the app\'s place in shared storage, '

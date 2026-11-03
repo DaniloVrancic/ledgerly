@@ -2,27 +2,27 @@
 // replaces the oldest. Each backup is a complete, consistent copy of the database.
 //
 // The new file is written first and the oldest one is removed only after that succeeded,
-// so a failed backup never costs an existing one.
+// so a failed backup never costs an existing one. Where the files live is the store's job.
 
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
 import '../../core/clock.dart';
+import 'backup_store.dart';
 
 class BackupFile {
-  const BackupFile(this.file, this.createdAt);
+  const BackupFile({required this.name, required this.createdAt, required this.sizeBytes});
 
-  final File file;
+  final String name;
   final DateTime createdAt;
-
-  String get name => p.basename(file.path);
-  int get sizeBytes => file.lengthSync();
+  final int sizeBytes;
 }
 
 class BackupService {
   BackupService({
-    required this.folder,
+    required this.store,
+    required this.workDir,
     required this.clock,
     required this.writeSnapshot,
     this.every = const Duration(days: 3),
@@ -30,7 +30,10 @@ class BackupService {
   });
 
   /// Where backups are kept.
-  final Directory folder;
+  final BackupStore store;
+
+  /// A private folder for the snapshot before it goes into the store.
+  final Directory workDir;
   final Clock clock;
 
   /// Writes a consistent copy of the database to the given path, which does not exist yet.
@@ -43,82 +46,71 @@ class BackupService {
   static const _extension = '.sqlite';
   static final _name = RegExp(r'^ledgerly-backup-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.sqlite$');
 
-  /// Existing backups, newest first.
-  List<BackupFile> list() {
-    if (!folder.existsSync()) return const [];
+  /// Existing backups, newest first. Other files in the store are left alone.
+  Future<List<BackupFile>> list() async {
     final out = <BackupFile>[];
-    for (final f in folder.listSync().whereType<File>()) {
-      final created = _timeFromName(p.basename(f.path));
-      if (created != null) out.add(BackupFile(f, created));
+    for (final f in await store.list()) {
+      final created = _timeFromName(f.name);
+      if (created != null) out.add(BackupFile(name: f.name, createdAt: created, sizeBytes: f.sizeBytes));
     }
     out.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return out;
   }
 
-  BackupFile? get latest {
-    final all = list();
+  Future<BackupFile?> latest() async {
+    final all = await list();
     return all.isEmpty ? null : all.first;
   }
 
   /// True when there is no backup yet or the newest is [every] old or older.
-  bool get isDue {
-    final last = latest;
+  Future<bool> isDue() async {
+    final last = await latest();
     return last == null || !clock.now().isBefore(last.createdAt.add(every));
   }
 
   /// Makes a backup if one is due. Called when the app starts and when it comes back to the front.
-  Future<BackupFile?> runIfDue() async => isDue ? backUpNow() : null;
+  Future<BackupFile?> runIfDue() async => await isDue() ? backUpNow() : null;
 
   /// Makes a backup now, then removes the oldest ones beyond [keep].
   Future<BackupFile> backUpNow() async {
-    await folder.create(recursive: true);
-    _removeUnfinished();
+    workDir.createSync(recursive: true);
     final created = clock.now();
-    final target = File(p.join(folder.path, _fileName(created)));
-    final temp = File('${target.path}.part');
-    await writeSnapshot(temp.path);
-    if (!temp.existsSync() || temp.lengthSync() == 0) {
-      throw const FileSystemException('The backup could not be written.');
-    }
-    if (target.existsSync()) target.deleteSync();
-    await _moveIntoPlace(temp, target);
-    final all = list();
-    for (final old in all.skip(keep)) {
-      old.file.deleteSync();
-    }
-    return BackupFile(target, created);
-  }
-
-  /// Windows can hold a new file for a moment, for example while a virus scanner reads it.
-  /// The move is retried for about two seconds, then done as a copy.
-  static Future<void> _moveIntoPlace(File temp, File target) async {
-    for (var attempt = 0; attempt < 10; attempt++) {
-      try {
-        await temp.rename(target.path);
-        return;
-      } on FileSystemException {
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-      }
-    }
-    await temp.copy(target.path);
+    final name = _fileName(created);
+    final temp = File(p.join(workDir.path, '$name.part'));
+    if (temp.existsSync()) temp.deleteSync();
     try {
-      temp.deleteSync();
-    } on FileSystemException {
-      // Removed by the next backup.
+      await writeSnapshot(temp.path);
+      if (!temp.existsSync() || temp.lengthSync() == 0) {
+        throw const FileSystemException('The backup could not be written.');
+      }
+      final size = temp.lengthSync();
+      await store.put(name, temp);
+      for (final old in (await list()).skip(keep)) {
+        await store.remove(old.name);
+      }
+      return BackupFile(name: name, createdAt: created, sizeBytes: size);
+    } finally {
+      if (temp.existsSync()) temp.deleteSync();
     }
   }
 
-  /// Removes copies left behind by a backup that was interrupted.
-  void _removeUnfinished() {
-    for (final f in folder.listSync().whereType<File>()) {
-      if (p.basename(f.path).startsWith(_prefix) && f.path.endsWith('.part')) {
-        try {
-          f.deleteSync();
-        } on FileSystemException {
-          // Still in use; try again next time.
-        }
-      }
+  /// Copies a backup out of the store, for restoring it.
+  Future<File> fetch(BackupFile backup) => store.fetch(backup.name, workDir);
+
+  /// Saves a copy of the current data next to the backups, under a name the 3-file rule never
+  /// counts or removes. Returns where it went.
+  Future<String> saveSafetyCopy(String label) async {
+    workDir.createSync(recursive: true);
+    final name = 'ledgerly-before-$label-${clock.now().millisecondsSinceEpoch}$_extension';
+    final temp = File(p.join(workDir.path, name));
+    if (temp.existsSync()) temp.deleteSync();
+    await writeSnapshot(temp.path);
+    try {
+      await store.put(name, temp);
+    } finally {
+      temp.deleteSync();
     }
+    return '${store.displayName}${Platform.pathSeparator}$name';
   }
 
   static String _fileName(DateTime t) {

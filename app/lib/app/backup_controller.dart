@@ -20,11 +20,20 @@ class BackupController extends Notifier<BackupState> {
   BackupService get _service => ref.read(backupServiceProvider);
 
   @override
-  BackupState build() => BackupState(files: ref.read(backupServiceProvider).list());
+  BackupState build() {
+    Future.microtask(refresh);
+    return const BackupState(files: []);
+  }
+
+  /// Reads the list of backups again.
+  Future<void> refresh() async {
+    final files = await _service.list();
+    state = BackupState(files: files, lastError: state.lastError, working: state.working);
+  }
 
   /// Called when the app starts and whenever it comes back to the front.
   Future<void> runIfDue() async {
-    if (!_service.isDue || state.working) return;
+    if (state.working || !await _service.isDue()) return;
     await backUpNow();
   }
 
@@ -32,10 +41,10 @@ class BackupController extends Notifier<BackupState> {
     state = BackupState(files: state.files, working: true);
     try {
       await _service.backUpNow();
-      state = BackupState(files: _service.list());
+      state = BackupState(files: await _service.list());
     } catch (e) {
       state = BackupState(
-        files: _service.list(),
+        files: await _service.list(),
         lastError: 'The backup could not be written: $e. Your data is safe on this device.',
       );
     }
