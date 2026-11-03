@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerly/app/app.dart';
 import 'package:ledgerly/app/backup_controller.dart';
 import 'package:ledgerly/app/files.dart';
+import 'package:ledgerly/app/lock_controller.dart';
 import 'package:ledgerly/app/providers.dart';
 import 'package:ledgerly/core/clock.dart';
 import 'package:ledgerly/data/backup/backup_service.dart';
@@ -22,6 +23,7 @@ import 'package:ledgerly/data/database/app_database.dart';
 import 'package:ledgerly/data/export/age_passphrase.dart';
 import 'package:ledgerly/data/export/ledgerly_file.dart';
 import 'package:ledgerly/data/repositories/account_repository.dart';
+import 'package:ledgerly/data/security/pin_hasher.dart';
 
 class AppHarness {
   AppHarness._(this.tester, this.db, this.clock, this.backupDir);
@@ -78,6 +80,8 @@ class AppHarness {
           clockProvider.overrideWithValue(clock),
           backupServiceProvider.overrideWithValue(backups),
           restoreBackupProvider.overrideWithValue((_) async {}),
+          // Few rounds, on the test's own clock: a real isolate never reports back inside it.
+          pinHasherProvider.overrideWithValue(const PinHasher(iterations: 1000, inBackground: false)),
           replaceDataProvider.overrideWithValue((file) async {
             replacedWith.add(file);
             return 'safety copy';
