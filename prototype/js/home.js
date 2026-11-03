@@ -76,7 +76,7 @@
   P.attention = function () {
     const out = [];
     const ro = P.isDesk();
-    D.RECURRING.filter((r) => r.state === 'due').forEach((r) => out.push({ key: r.id, title: esc(r.name), sub: `Due ${r.date === G.TODAY ? 'today' : `on ${G.shortDate(r.date)}`}, ${L.fmt(r.amount, r.cur)}`, label: ro ? 'View' : 'Confirm', name: ro ? 'tab' : 'confirmDue', arg: ro ? 'recurring' : r.id, icon: 'repeat' }));
+    D.RECURRING.filter((r) => r.state === 'due').forEach((r) => out.push({ key: r.id, title: esc(r.name), sub: `${P.dueWhen(r)}, ${L.fmt(r.amount, r.cur)}${r.varies ? ', amount changes' : ''}`, label: ro ? 'View' : 'Mark paid', name: ro ? 'tab' : 'confirmDue', arg: ro ? 'recurring' : r.id, icon: 'repeat' }));
     const rev = D.review().length;
     if (rev) out.push({ key: 'review', title: `${rev} ${rev === 1 ? 'entry' : 'entries'} to review`, sub: rev === 1 ? 'It needs a category' : 'They need a category', label: ro ? 'View' : 'Review', name: 'go', arg: 'review', icon: 'flag' });
     if (G.S.backup !== 'healthy') out.push({ key: 'backup', title: G.S.backup === 'failed' ? 'Backup failed' : 'Backup overdue', sub: G.S.backup === 'failed' ? 'Your data is safe on this phone.' : 'Last backup 12 days ago', label: 'View', name: 'go', arg: 'backup', icon: 'shield' });
@@ -91,10 +91,6 @@
     return out.slice(0, 3);
   };
   const attentionRow = (a) => attr(ui.attention(a.title, a.sub, a.label, { icon: a.icon }).replace('data-attn', act(a.name, a.arg)), `data-key="${a.key}"`);
-  P.acts.confirmDue = (id) => {
-    const r = D.RECURRING.find((x) => x.id === id);
-    P.withUndo(`${esc(r.name)} confirmed, ${L.fmt(r.amount, r.cur)}`, () => G.confirmRecurring(id));
-  };
 
   P.backupLine = function () {
     const m = { healthy: `Backed up ${G.diffDays(G.TODAY, G.S.backupAt) === 0 ? 'today' : `${G.diffDays(G.TODAY, G.S.backupAt)} days ago`}`, overdue: 'Last backup 12 days ago', failed: 'Backup failed. Your data is safe on this phone.' }[G.S.backup];

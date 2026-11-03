@@ -164,7 +164,7 @@
     if (c.step === 2) {
       const row = (r) => {
         const on = r.status === 'missing' ? r.add : !r.skip;
-        return `<div class="p-row-action" data-key="${r.id}">${P.check('', on, 'csvToggle', r.id).replace('<span></span></label>', `<span class="lg-sr">Add ${esc(r.text)}</span></label>`)}<span class="lg-row__body"><span class="lg-row__title" style="font-size:.875rem">${esc(r.text)}</span><span class="lg-row__sub">${G.shortDate(r.date)}${r.status === 'duplicate' ? `, looks like ${esc(P.byId(r.tx).merchant || 'an entry')} on ${G.shortDate(P.byId(r.tx).date)}` : r.cat ? ` · ${esc(P.catName(r.subcat || r.cat))}` : ' · Goes to Needs Review'}</span></span><span class="p-amount-sm">${L.money(-r.amount, 'BAM', { tone: 'negative' })}</span></div>`;
+        return `<div class="p-row-action" data-key="${r.id}">${P.check('', on, 'csvToggle', r.id).replace('<span></span></label>', `<span class="lg-sr">Add ${esc(r.text)}</span></label>`)}<span class="lg-row__body"><span class="lg-row__title" style="font-size:.875rem">${esc(r.text)}</span><span class="lg-row__sub">${G.shortDate(r.date)}${r.status === 'duplicate' ? `, looks like ${esc(G.titleOf(P.byId(r.tx)))} on ${G.shortDate(P.byId(r.tx).date)}` : r.cat ? ` · ${esc(P.catName(r.subcat || r.cat))}` : ' · Goes to Needs Review'}</span></span><span class="p-amount-sm">${L.money(-r.amount, 'BAM', { tone: 'negative' })}</span></div>`;
       };
       const by = (s) => c.rows.filter((r) => r.status === s);
       return narrow(head, `${steps}

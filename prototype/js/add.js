@@ -6,7 +6,7 @@
 
   const last = { expense: 'main', income: 'main', transfer: ['main', 'euro'] };
   function blank() {
-    return { kind: 'expense', amount: '', merchant: '', account: last.expense, date: G.TODAY, cat: null, panel: null, more: false, keypad: true, save: false, tags: '', note: '', share: '', owedFrom: '', foreign: null, rate: '', split: null, attachments: 0, from: last.transfer[0], to: last.transfer[1], query: '', suggest: [] };
+    return { kind: 'expense', amount: '', title: '', merchant: '', repeat: 'Never', account: last.expense, date: G.TODAY, cat: null, panel: null, more: false, keypad: true, save: false, tags: '', note: '', share: '', owedFrom: '', foreign: null, rate: '', split: null, attachments: 0, from: last.transfer[0], to: last.transfer[1], query: '', suggest: [] };
   }
   P.openAdd = function (seed) { if (P.isDesk()) return; st.toast = null; st.add = Object.assign(blank(), seed); P.render(); };
   P.closeAdd = function () { st.add = null; P.render(); };
@@ -81,7 +81,9 @@
     const foreign = `${P.switch('Different currency', !!a.foreign, 'addForeign')}${a.foreign ? `<div class="p-grid2">${P.field('Currency', P.select('addCur', a.foreign, P.currencies.filter((c) => c !== cur).map((c) => [c, c === 'BAM' ? 'BAM (KM)' : c]), { label: 'Currency' }))}${P.field(`1 ${a.foreign} in EUR`, a.foreign === 'BAM' ? `<span class="lg-input is-disabled"><input disabled value="0.51129"></span>` : P.input('addRate', a.rate, { mode: 'decimal', placeholder: '0.92', label: 'Rate' }), a.foreign === 'BAM' ? 'Fixed rate' : 'Entered by you')}</div>` : ''}`;
     const expenseOnly = a.kind === 'expense' ? `${P.switch('Split across categories', !!a.split, 'addSplit')}${splitBlock(a)}
       ${P.switch('My share is less', a.share !== '', 'addShareOn')}${a.share !== '' ? `<div class="p-grid2">${P.field('My share', P.input('addShare', a.share, { mode: 'decimal', placeholder: '0.00', label: 'My share' }), shareLeft > 0 ? `${L.fmt(shareLeft, cur)} owed to me` : 'Enter the part that is yours')}${P.field('Owed by', P.input('addOwed', a.owedFrom, { placeholder: 'Name', label: 'Owed by' }))}</div>` : ''}` : '';
-    return `<div class="p-more">${P.field('Tags', P.input('addTags', a.tags, { placeholder: 'trip, car', label: 'Tags' }), 'Separate with commas.')}${expenseOnly}${foreign}${note}
+    const repeat = P.field('Repeat', P.seg(['Never', ...G.EVERY], a.repeat, 'addRepeat', 'Repeat'), a.repeatId && a.repeat !== 'Never' ? 'Already repeats. Choose Never to save this as a one-off.' : a.repeat !== 'Never' ? `Next on ${G.shortDate(G.advance(a.date, a.repeat))}. It waits as Due until you mark it paid.` : 'Set a repeat to make the next one a single tap.');
+    const merchant = P.field('Merchant, optional', P.input('addMerchant', a.merchant, { placeholder: 'For example Konzum', label: 'Merchant, optional' }));
+    return `<div class="p-more">${repeat}${merchant}${P.field('Tags', P.input('addTags', a.tags, { placeholder: 'trip, car', label: 'Tags' }), 'Separate with commas.')}${expenseOnly}${foreign}${note}
       <div class="lg-between"><span class="label">Attachments${a.attachments ? ` · ${a.attachments}` : ''}</span>${P.btn('Attach receipt', 'attachReceipt', 'add', { small: true, kind: 'secondary', icon: 'receipt' })}</div></div>`;
   }
 
@@ -98,20 +100,28 @@
       <div style="margin-top:12px">${P.btn('New category', 'addNewCat', null, { block: true, kind: 'secondary', icon: 'plus' })}</div>`;
   }
 
+  function repeatHint(a) {
+    const r = a.repeatId && a.repeat !== 'Never' && D.RECURRING.find((x) => x.id === a.repeatId);
+    if (!r) return '';
+    return `<div class="caption lg-faint lg-inline" style="gap:4px">${L.icon('repeat', 16)}${esc(r.name)} repeats. Saving marks the one ${r.state === 'due' ? P.dueWhen(r).toLowerCase() : `on ${G.shortDate(r.date)}`} as paid.</div>`;
+  }
   P.addSheet = function () {
     const a = st.add;
     if (a.panel === 'all') return allList(a);
     if (a.panel === 'new') return P.categoryForm('add');
-    const known = a.suggest.map((m) => P.pill(`${esc(m.name)}`, false, 'addRemember', m.name, 'clock')).join('');
-    const tpl = a.kind === 'expense' && !minorOf(a.amount) && !a.merchant ? `<div class="p-templates" aria-label="Templates">${G.TEMPLATES.map((t) => P.pill(`${esc(t.name)}${t.amount ? ` <span class="lg-faint">${L.fmt(t.amount, D.acc(t.account).cur)}</span>` : ''}`, false, 'addTemplate', t.id, L.cat(t.subcat || t.cat).icon)).join('')}</div>` : '';
+    const titlePill = (m) => P.pill(esc(m.name), G.fold(a.title) === G.fold(m.name), 'addTitle', m.name, L.cat(m.subcat || m.cat).icon);
+    const known = a.suggest.map(titlePill).join('');
+    // Titles used most in the last 90 days, so a frequent entry is one tap after the amount.
+    const frequent = a.kind !== 'transfer' && !a.title ? G.titles().filter((m) => m.type === a.kind).slice(0, 6) : [];
+    const tpl = frequent.length ? `<div class="p-templates" aria-label="Frequent titles">${frequent.map(titlePill).join('')}</div>` : '';
     const pills = a.kind === 'transfer'
       ? `${P.pill(esc(D.acc(a.from).name), a.panel === 'from', 'addPanel', 'from', 'wallet')}<span style="align-self:center;color:var(--neutral)">${L.icon('transfer', 16, 'to')}</span>${P.pill(esc(D.acc(a.to).name), a.panel === 'to', 'addPanel', 'to', 'wallet')}`
       : P.pill(esc(D.acc(a.account).name), a.panel === 'account', 'addPanel', 'account', 'wallet');
     const save = needsSave(a) ? P.btn(a.kind === 'transfer' ? 'Save transfer' : 'Save', 'addSave', null, { kind: 'primary', small: true, state: canSave(a) ? undefined : 'disabled' }) : '';
     const keypad = a.keypad ? ui.keypad().replace(/data-key="(\w+|\.)"/g, 'data-key="k$1" data-act="addKey" data-arg="$1"') : '';
     return `<div class="lg-add p-add">${tpl}${amountLine(a)}
-      <span class="lg-input"><input data-in="addMerchant" aria-label="Merchant, optional" placeholder="${a.kind === 'transfer' ? 'Label (optional)' : 'Merchant (optional)'}" value="${esc(a.merchant)}"></span>
-      ${known ? `<div class="p-suggest" aria-label="Known merchants">${known}</div>` : ''}
+      <span class="lg-input"><input data-in="addTitle" aria-label="Title" placeholder="${a.kind === 'transfer' ? 'Title, optional' : 'Title, for example Groceries'}" value="${esc(a.title)}" autocomplete="off"></span>
+      ${known ? `<div class="p-suggest" aria-label="Titles you used before">${known}</div>` : ''}${repeatHint(a)}
       ${P.seg(TYPES, a.kind, 'addKind', 'Type')}
       <div class="lg-add__pills">${pills}${P.pill(dateLabel(a.date), a.panel === 'date', 'addPanel', 'date', 'calendar')}</div>
       ${chipsArea(a)}
@@ -158,32 +168,34 @@
   };
   P.acts.addDate = (d) => { st.add.date = d; st.add.panel = null; P.render(); };
   P.inputs.addDate = (v) => { if (v) { st.add.date = v; st.add.panel = null; P.render(); } };
-  P.inputs.addMerchant = function (v) {
+  // Title memory: a title typed before brings back its usual subcategory and account.
+  P.inputs.addTitle = function (v) {
     const a = st.add;
-    a.merchant = v;
+    a.title = v;
+    a.repeatId = null;
     const q = G.fold(v.trim());
-    const known = G.merchants().filter((m) => m.type === a.kind);
+    const known = G.titles().filter((m) => m.type === a.kind);
     const exact = known.find((m) => G.fold(m.name) === q);
-    if (exact) { remember(exact); a.suggest = []; } else a.suggest = q && a.kind !== 'transfer' ? known.filter((m) => G.fold(m.name).includes(q)).slice(0, 3) : [];
+    if (exact) { remember(exact); a.suggest = []; } else a.suggest = q && a.kind !== 'transfer' ? known.filter((m) => G.fold(m.name).includes(q)).slice(0, 4) : [];
     P.render();
   };
+  P.inputs.addMerchant = (v) => { st.add.merchant = v; };
+  const repeatFor = (title, kind) => D.RECURRING.find((r) => r.kind === kind && G.fold(r.name) === G.fold(title));
   function remember(m) {
     const a = st.add;
-    a.merchant = m.name; a.account = m.account; a.cat = m.subcat || m.cat; a.save = true; a.suggest = []; a.panel = null;
+    a.title = m.name; a.account = m.account; a.cat = m.subcat || m.cat; a.save = true; a.suggest = []; a.panel = null;
+    const r = repeatFor(m.name, a.kind);
+    a.repeatId = r ? r.id : null;
+    if (r) { a.repeat = r.every; a.account = r.account; }
   }
-  P.acts.addRemember = (name) => { remember(G.merchants().find((m) => m.name === name)); P.render(); };
-  P.acts.addTemplate = function (id) {
-    const t = G.TEMPLATES.find((x) => x.id === id);
-    if (t.amount) {
-      const c = t.subcat || t.cat;
-      const f = () => G.create({ type: t.type, account: t.account, amount: t.amount, merchant: t.merchant, cat: t.cat, subcat: t.subcat });
-      st.add = null;
-      P.withUndo(`Saved ${L.fmt(t.amount, D.acc(t.account).cur)}, ${esc(L.cat(c).name)}`, f, { moreLabel: 'Add another', more: () => P.openAdd() });
-      return;
-    }
-    Object.assign(st.add, { merchant: t.merchant, account: t.account, cat: t.subcat || t.cat, save: true });
+  // With an amount already typed, a title saves at once, like a chip.
+  P.acts.addTitle = (name) => {
+    const a = st.add;
+    remember(G.titles().find((m) => m.name === name));
+    if (minorOf(a.amount) && !a.more) { saveNow(); return; }
     P.render();
   };
+  P.acts.addRepeat = (v) => { st.add.repeat = v; P.render(); };
   P.acts.addChip = function (id) {
     const a = st.add;
     if (!minorOf(a.amount)) { a.panel = null; P.render(); return; }
@@ -196,7 +208,7 @@
     const a = st.add;
     const amount = accountAmount(a);
     const cur = D.acc(a.account).cur;
-    const p = { type: a.kind, account: a.account, amount, merchant: a.merchant || null, cat: null, subcat: null, date: a.date, flags: ['review'] };
+    const p = { type: a.kind, account: a.account, amount, title: a.title.trim() || null, cat: null, subcat: null, date: a.date, flags: ['review'] };
     st.add = null;
     P.withUndo(`Saved ${L.fmt(amount, cur)} to Needs Review`, () => G.create(p), { moreLabel: 'Add another', more: () => P.openAdd() });
   };
@@ -233,8 +245,8 @@
     const amount = accountAmount(a);
     if (a.kind === 'transfer') {
       const from = D.acc(a.from); const to = D.acc(a.to);
-      const label = a.merchant || (a.to === 'cash' ? 'ATM withdrawal' : a.to === 'card' ? 'Credit card payment' : a.to === 'savings' ? 'To Savings' : `To ${to.name}`);
-      const p = { type: 'transfer', account: a.from, to: a.to, amount, merchant: label, date: a.date, note: a.note || undefined };
+      const label = a.title.trim() || (a.to === 'cash' ? 'ATM withdrawal' : a.to === 'card' ? 'Credit card payment' : a.to === 'savings' ? 'To Savings' : `To ${to.name}`);
+      const p = { type: 'transfer', account: a.from, to: a.to, amount, title: label, date: a.date, note: a.note || undefined };
       last.transfer = [a.from, a.to];
       st.add = null;
       P.withUndo(`Transfer saved, ${L.fmt(amount, from.cur)} to ${esc(to.name)}`, () => G.create(p), { moreLabel: 'Add another', more: () => P.openAdd({ kind: 'transfer' }) });
@@ -243,7 +255,8 @@
     const cur = D.acc(a.account).cur;
     const cat = a.split ? a.split[0].cat : a.cat;
     const parent = G.parentOf(cat);
-    const p = { type: a.kind, account: a.account, amount, merchant: a.merchant.trim() || null, cat: parent, subcat: parent === cat ? null : cat, date: a.date, flags: [], tags: a.tags.split(',').map((s) => s.trim()).filter(Boolean), note: a.note || undefined };
+    const title = a.title.trim() || (a.split ? 'Split purchase' : L.cat(cat).name);
+    const p = { type: a.kind, account: a.account, amount, title, merchant: a.merchant.trim() || null, cat: parent, subcat: parent === cat ? null : cat, date: a.date, flags: [], tags: a.tags.split(',').map((s) => s.trim()).filter(Boolean), note: a.note || undefined };
     if (a.attachments) { p.flags.push('receipt'); p.attachments = a.attachments; }
     if (a.split) {
       p.flags.push('split');
@@ -257,8 +270,24 @@
     last[a.kind] = a.account;
     const kind = a.kind;
     st.add = null;
-    const name = a.split ? `split across ${a.split.length}` : esc(L.cat(cat).name);
-    P.withUndo(`Saved ${L.fmt(amount, cur)}, ${name}`, () => G.create(p), { moreLabel: 'Add another', more: () => P.openAdd({ kind }) });
+    const every = a.repeat !== 'Never' && !a.split ? a.repeat : null;
+    const existing = every && a.repeatId && D.RECURRING.find((x) => x.id === a.repeatId);
+    if (existing) {
+      const next = G.advance(existing.date, existing.every, existing.day);
+      P.withUndo(`Saved ${L.fmt(amount, cur)}, ${esc(title)}. Marked paid, next on ${G.shortDate(next)}`, () => {
+        const t = G.create(Object.assign(p, { rec: existing.id, every: existing.every, flags: p.flags.concat('recurring') }));
+        if (existing.varies) existing.amount = amount;
+        G.skip(existing.id);
+        return t;
+      }, { moreLabel: 'Add another', more: () => P.openAdd({ kind }) });
+      return;
+    }
+    const save = () => {
+      const t = G.create(p);
+      if (every) { const r = G.addRepeat({ name: title, cat: parent, subcat: p.subcat, amount, account: a.account, every, date: G.advance(a.date, every), kind }); t.rec = r.id; t.every = every; t.flags.push('recurring'); }
+      return t;
+    };
+    P.withUndo(`Saved ${L.fmt(amount, cur)}, ${esc(title)}${every ? `. Repeats ${every.toLowerCase()}, next on ${G.shortDate(G.advance(a.date, every))}` : ''}`, save, { moreLabel: 'Add another', more: () => P.openAdd({ kind }) });
   }
 
   // Attachments are simulated: the first one asks for permission, the way Android would.

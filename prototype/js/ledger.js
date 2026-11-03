@@ -118,6 +118,24 @@
     if (t.share != null) { t.owedFrom = 'Lejla'; delete t.sub; }
     if (t.flags.includes('split')) delete t.sub;
   });
+
+  // Every entry is a title and a subcategory. The merchant is optional and kept only when it adds something.
+  const TITLE = {
+    Konzum: 'Groceries', Bingo: 'Groceries', Mercator: 'Groceries', 'Pekara Đulić': 'Bread', 'Kafić Šišmiš': 'Coffee', 'Caffe Tito': 'Coffee', 'Ćevabdžinica Željo': 'Lunch', 'Bistro Čaršija': 'Dinner',
+    INA: 'Fuel', 'Hifa Petrol': 'Fuel', Gras: 'Bus ticket', 'Parking Skenderija': 'Parking', Zara: 'Clothes', 'H&M': 'Clothes', Decathlon: 'Sports gear', Apoteka: 'Pharmacy', 'DM Drogerie': 'Cosmetics',
+    'Dom zdravlja': 'Doctor', 'Cinema City': 'Cinema', Muzej: 'Museum', Knjižara: 'Books', 'Frizer Šefik': 'Haircut', 'Elektroprivreda BiH': 'Electricity', 'BH Telecom Internet': 'Internet',
+    'BH Telecom Mobile': 'Phone bill', 'Vodovod Sarajevo': 'Water', 'Toplane Sarajevo': 'Heating', 'Fitness Zona': 'Gym', 'Sportsko društvo': 'Football match', 'Bosnian Film Fest': 'Film festival',
+    'Koncert u BKC': 'Concert', 'Black Friday, Tehnika': ['Headphones', 'Tehnika'], 'IKEA Beograd': 'Shelves', 'IKEA Beograd refund': ['Shelves refund', 'IKEA Beograd'], 'Zara refund': ['Clothes refund', 'Zara'],
+    'Auto servis Hadžić': 'Car service', 'Stomatološka ordinacija': 'Dentist', Udemy: 'Online course', 'Humble Bundle': 'Game bundle', 'Pet shop Mačak': 'Cat food',
+  };
+  const PLAIN = new Set(['Elektroprivreda BiH', 'BH Telecom Internet', 'BH Telecom Mobile', 'Vodovod Sarajevo', 'Toplane Sarajevo', 'Fitness Zona']);
+  T.forEach((t) => {
+    const m = t.merchant; const v = TITLE[m];
+    if (t.type === 'expense' && !t.cat) { t.title = null; return; }
+    if (t.parts) { t.title = 'Weekly shop'; return; }
+    if (Array.isArray(v)) { t.title = v[0]; t.merchant = v[1]; } else if (v) { t.title = v; if (PLAIN.has(m)) t.merchant = null; } else { t.title = m; t.merchant = null; }
+  });
+  const titleOf = (t) => t.title || t.merchant || 'No title';
   T.sort((a, b) => (a.date === b.date ? a.id - b.id : a.date < b.date ? -1 : 1));
   let shop = 0;
   T.forEach((t) => {
@@ -138,15 +156,27 @@
   const checks = { main: '2026-09-30', euro: '2026-09-30', savings: '2026-09-30', cash: '2026-10-12', card: '2026-09-30' };
 
   D.GOALS.forEach((g, i) => Object.assign(g, { id: `g${i + 1}`, account: i === 2 ? 'euro' : 'savings', by: ['', '2027-06-01', '2027-02-01'][i] }));
-  const recurringDays = { 'BH Telecom Mobile': 25, Salary: 28, Rent: 1, Netflix: 3 };
-  D.RECURRING.forEach((r, i) => Object.assign(r, { id: `r${i + 1}`, account: r.cur === 'EUR' ? 'card' : 'main', day: recurringDays[r.name], every: 'Monthly' }));
-  D.RECURRING.find((r) => r.name === 'Salary').kind = 'income';
-  D.RECURRING.find((r) => r.name === 'Salary').subcat = null;
-  [['Rent', 'rent'], ['Netflix', 'streaming'], ['BH Telecom Mobile', 'mobile']].forEach(([n, s]) => { D.RECURRING.find((r) => r.name === n).subcat = s; });
-  [['Elektroprivreda BiH', 'bills', 'electricity', 12500, 'BAM', 'main', '2026-11-05', 5], ['Fitness Zona', 'health', 'fitness', 5000, 'BAM', 'main', '2026-11-06', 6], ['BH Telecom Internet', 'bills', 'internet', 5900, 'BAM', 'main', '2026-11-08', 8],
-    ['Vodovod Sarajevo', 'bills', 'utilities', 2200, 'BAM', 'main', '2026-11-10', 10], ['Spotify', 'subscriptions', 'musicapp', 699, 'EUR', 'card', '2026-11-12', 12], ['Toplane Sarajevo', 'bills', 'utilities', 10500, 'BAM', 'main', '2026-11-14', 14], ['Google One', 'subscriptions', 'software', 299, 'EUR', 'card', '2026-11-17', 17]]
-    .forEach(([name, cat, subcat, amount, cur, account, date, day], i) => D.RECURRING.push({ id: `r${i + 10}`, name, cat, subcat, amount, cur, account, date, day, every: 'Monthly', state: 'planned' }));
-  D.RECURRING.push({ id: 'r20', name: 'Salary', cat: 'salary', amount: 391166, cur: 'BAM', account: 'main', date: '2026-11-28', day: 28, every: 'Monthly', state: 'planned', kind: 'income' });
+  // Repeats: a title the person chose, how often, and the next date. Nothing posts by itself:
+  // a repeat becomes Due on its date and waits until it is marked paid or skipped.
+  const EVERY = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
+  const PER_MONTH = { Daily: 365 / 12, Weekly: 52 / 12, Monthly: 1, Yearly: 1 / 12 };
+  function advance(date, every, day) {
+    if (every === 'Daily') return addDays(date, 1);
+    if (every === 'Weekly') return addDays(date, 7);
+    let [y, m] = date.split('-').map(Number);
+    if (every === 'Yearly') y += 1; else { m += 1; if (m > 12) { m = 1; y += 1; } }
+    return ymd(y, m, Math.min(day || Number(date.slice(8)), daysInMonth(y, m)));
+  }
+  D.RECURRING.length = 0;
+  [['Rent', 'housing', 'rent', 90000, 'main', 'Monthly', '2026-11-01'], ['Netflix', 'subscriptions', 'streaming', 1299, 'card', 'Monthly', '2026-11-03'], ['Phone bill', 'bills', 'mobile', 3500, 'main', 'Monthly', '2026-10-25'],
+    ['Electricity', 'bills', 'electricity', 12500, 'main', 'Monthly', '2026-11-05', true], ['Gym', 'health', 'fitness', 5000, 'main', 'Monthly', '2026-11-06'], ['Internet', 'bills', 'internet', 5900, 'main', 'Monthly', '2026-11-08'],
+    ['Water', 'bills', 'utilities', 2200, 'main', 'Monthly', '2026-11-10', true], ['Spotify', 'subscriptions', 'musicapp', 699, 'card', 'Monthly', '2026-11-12'], ['Heating', 'bills', 'utilities', 10500, 'main', 'Monthly', '2026-11-14', true],
+    ['Google One', 'subscriptions', 'software', 299, 'card', 'Monthly', '2026-11-17'], ['Parking at work', 'transport', 'parking', 200, 'cash', 'Daily', '2026-10-29'], ['Cleaning', 'shopping', 'household', 3000, 'cash', 'Weekly', '2026-10-30'],
+    ['Car registration', 'transport', 'carservice', 18500, 'euro', 'Yearly', '2027-04-20'], ['Salary', 'salary', null, 391166, 'main', 'Monthly', '2026-11-28', false, 'income']]
+    .forEach(([name, cat, subcat, amount, account, every, date, varies, kind], i) => D.RECURRING.push({ id: `r${i + 1}`, name, cat, subcat, amount, cur: D.acc(account).cur, account, every, date, day: Number(date.slice(8)), varies: !!varies, kind: kind || 'expense' }));
+  const refreshStates = () => D.RECURRING.forEach((r) => { r.state = r.date <= TODAY ? 'due' : 'planned'; });
+  refreshStates();
+  T.forEach((t) => { if (t.flags.includes('recurring')) { const r = D.RECURRING.find((x) => x.name === t.title); if (r) { t.rec = r.id; t.every = r.every; } } });
 
   const BUDGETS = [
     { id: 'b0', cat: 'overall', scope: 'Overall', limit: 170000, every: 'Monthly' },
@@ -158,14 +188,8 @@
     { id: 'b6', cat: 'dining', scope: 'Subcategory', limit: 9000, every: 'Monthly' },
     { id: 'b7', cat: 'groceries', scope: 'Subcategory', limit: 7500, every: 'Weekly' },
   ];
-  const TEMPLATES = [
-    { id: 'tp1', name: 'Coffee', type: 'expense', amount: 400, account: 'cash', cat: 'food', subcat: 'coffee', merchant: 'Kafić Šišmiš' },
-    { id: 'tp2', name: 'Bus ticket', type: 'expense', amount: 180, account: 'cash', cat: 'transport', subcat: 'transit', merchant: 'Gras' },
-    { id: 'tp3', name: 'Groceries', type: 'expense', amount: null, account: 'main', cat: 'food', subcat: 'groceries', merchant: 'Konzum' },
-    { id: 'tp4', name: 'Fuel', type: 'expense', amount: null, account: 'main', cat: 'transport', subcat: 'fuel', merchant: 'Hifa Petrol' },
-  ];
   const zaraId = T.find((t) => t.merchant === 'Zara' && t.date === '2026-10-09').id;
-  const dubrovnikId = T.find((t) => t.merchant === 'Dubrovnik apartment').id;
+  const dubrovnikId = T.find((t) => t.title === 'Dubrovnik apartment').id;
   const NOTES = [
     { id: 'n1', title: 'September close', date: '2026-10-01', tags: ['monthly'], body: 'Spending was close to normal. Shopping ran over because of the winter jacket.\nMove the laptop goal up if freelance comes in this month.', links: [{ type: 'goal', id: 'g3' }] },
     { id: 'n2', title: 'Dubrovnik trip costs', date: '2026-08-12', tags: ['trip', 'dubrovnik'], body: 'Apartment was the big cost. Ferry and dining stayed under what I planned.\n- Book earlier next time\n- Cash is enough for the islands', links: [{ type: 'transaction', id: dubrovnikId }, { type: 'category', id: 'travel' }] },
@@ -179,7 +203,7 @@
     monthStart: 1, closed: {}, backup: 'healthy', backupAt: '2026-10-27', restoreTest: '2026-09-14', lastExport: null, files: [],
     lock: false, lockDelay: '5 minutes', folder: 'SD card/Ledgerly backups', statementDone: false, permissions: { camera: false, photos: false },
   };
-  const state = { v: 1, S, BUDGETS, TEMPLATES, NOTES, checks, archived };
+  const state = { v: 1, S, BUDGETS, NOTES, checks, archived };
 
   // ---- Periods follow the chosen month start ----
   function periodOf(date, startDay) {
@@ -252,17 +276,28 @@
   D.owed = () => owedList().reduce((s, o) => s + o.left, 0);
 
   const nextPayday = () => D.RECURRING.filter((r) => r.kind === 'income' && r.date > TODAY).map((r) => r.date).sort()[0];
-  // Normal daily spending leaves out recurring entries, since they are counted as bills.
+  // Every date a repeat falls on in a range. A Due repeat counts once, on its own date.
+  function occurrences(start, end, filter) {
+    const out = [];
+    D.RECURRING.filter(filter || (() => true)).forEach((r) => {
+      let d = r.date; let n = 0;
+      while (d <= end && n < 400) { if (d >= start) out.push({ r, date: d }); d = advance(d, r.every, r.day); n += 1; }
+    });
+    return out.sort((a, b) => (a.date < b.date ? -1 : 1));
+  }
+  // Normal daily spending leaves out monthly and yearly repeats, since they are counted as bills.
+  // Daily and weekly repeats stay in it, so they are not counted twice.
+  const isBill = (r) => r.every === 'Monthly' || r.every === 'Yearly';
   function dailyNormal() {
     const days = 92; const start = addDays(TODAY, -days);
-    const sum = T.reduce((s, t) => s + (t.date > start && t.date <= TODAY && !t.flags.includes('recurring') ? D.counted(t) : 0), 0);
+    const sum = T.reduce((s, t) => s + (t.date > start && t.date <= TODAY && !(t.flags.includes('recurring') && !['Daily', 'Weekly'].includes(t.every)) ? D.counted(t) : 0), 0);
     return Math.round(sum / days);
   }
   function forecast() {
     const liquid = D.accounts().filter((a) => a.id !== 'savings').reduce((s, a) => s + a.base, 0);
     const payday = nextPayday();
     const perDay = dailyNormal();
-    const bills = D.RECURRING.filter((r) => r.kind !== 'income' && (r.state === 'planned' || r.state === 'due') && r.date < payday).sort((a, b) => (a.date < b.date ? -1 : 1));
+    const bills = occurrences('0000', addDays(payday, -1), (r) => r.kind !== 'income' && isBill(r)).map((o) => ({ name: o.r.name, amount: o.r.amount, cur: o.r.cur, date: o.date }));
     let bal = liquid; let lowest = liquid; let lowestDate = TODAY; const curve = [];
     for (let d = addDays(TODAY, 1); d < payday; d = addDays(d, 1)) {
       bal -= perDay + bills.filter((b) => b.date === d || (b.date <= TODAY && d === addDays(TODAY, 1))).reduce((s, b) => s + D.toEur(b.amount, b.cur), 0);
@@ -313,8 +348,8 @@
     return o;
   }
   function subscriptionTotal() {
-    const list = D.RECURRING.filter((r) => r.cat === 'subscriptions' && r.state === 'planned');
-    const month = list.reduce((s, r) => s + D.toEur(r.amount, r.cur), 0);
+    const list = D.RECURRING.filter((r) => r.cat === 'subscriptions');
+    const month = Math.round(list.reduce((s, r) => s + D.toEur(r.amount, r.cur) * PER_MONTH[r.every], 0));
     return { list, month, year: month * 12 };
   }
 
@@ -336,21 +371,24 @@
     return out;
   }
 
-  // ---- Merchant memory, chips and search ----
-  function merchants() {
-    return memo('merchants', () => {
+  // ---- Title memory, chips and search. Titles typed before are offered again ----
+  function titles() {
+    return memo('titles', () => {
       const map = {};
+      const since = addDays(TODAY, -90);
       T.forEach((t) => {
-        if (!t.merchant || !t.cat || (t.type !== 'expense' && t.type !== 'income')) return;
-        const m = (map[t.merchant] = map[t.merchant] || { name: t.merchant, type: t.type, count: 0, uses: {} });
+        if (!t.title || !t.cat || (t.type !== 'expense' && t.type !== 'income')) return;
+        const key = fold(t.title);
+        const m = (map[key] = map[key] || { name: t.title, type: t.type, count: 0, recent: 0, uses: {}, last: t });
         m.count += 1;
+        if (t.date >= since) m.recent += 1;
         const k = `${t.cat}|${t.subcat || ''}|${t.account}`;
         m.uses[k] = (m.uses[k] || 0) + 1;
       });
       return Object.values(map).map((m) => {
         const [cat, subcat, account] = Object.keys(m.uses).sort((a, b) => m.uses[b] - m.uses[a])[0].split('|');
-        return { name: m.name, type: m.type, count: m.count, cat, subcat: subcat || null, account };
-      }).sort((a, b) => b.count - a.count);
+        return { name: m.name, type: m.type, count: m.count, recent: m.recent, cat, subcat: subcat || null, account, amount: m.last.amount };
+      }).sort((a, b) => b.recent - a.recent || b.count - a.count);
     });
   }
   const frozen = {};
@@ -397,7 +435,7 @@
       const money = [t.amount, t.base, t.orig && t.orig.amount].filter((x) => x != null).map((x) => (Math.abs(x) / 100).toFixed(2));
       return money.some((m) => m === v || m.startsWith(v.includes('.') ? v : `${v}.`) || m.replace(/\.00$/, '') === v);
     }
-    const hay = [t.merchant, t.note, t.owedFrom, ...(t.tags || []), t.cat && L.cat(t.cat).name, t.subcat && L.cat(t.subcat).name, D.acc(t.account).name, t.to && D.acc(t.to).name].map(fold).join(' ');
+    const hay = [t.title, t.merchant, t.note, t.owedFrom, ...(t.tags || []), t.cat && L.cat(t.cat).name, t.subcat && L.cat(t.subcat).name, D.acc(t.account).name, t.to && D.acc(t.to).name].map(fold).join(' ');
     return n.split(/\s+/).every((w) => hay.includes(w));
   }
   // A split payment counts only its matching part when one category is being looked at.
@@ -433,7 +471,7 @@
   const tags = () => [...new Set(T.flatMap((t) => t.tags || []))].sort();
 
   // ---- Changes. Each returns what the toast needs; `checkpoint` is the Undo ----
-  function bump() { state.v += 1; cache = {}; sortT(); }
+  function bump() { state.v += 1; cache = {}; refreshStates(); sortT(); }
   function checkpoint() {
     const save = { T: T.map((t) => Object.assign({}, t, { flags: t.flags.slice(), tags: (t.tags || []).slice(), parts: t.parts && t.parts.map((p) => p.slice()) })), R: D.RECURRING.map((r) => Object.assign({}, r)), G: D.GOALS.map((g) => Object.assign({}, g)), B: BUDGETS.map((b) => Object.assign({}, b)), N: NOTES.map((n) => Object.assign({}, n, { links: n.links.slice(), tags: n.tags.slice() })), C: Object.assign({}, checks), S: Object.assign({}, S, { closed: Object.assign({}, S.closed) }) };
     return () => {
@@ -450,7 +488,7 @@
   const nowTime = () => { clock += 3; return `${pad(Math.floor(clock / 60) % 24)}:${pad(clock % 60)}`; };
   function create(p) {
     const cur = D.acc(p.account).cur;
-    const t = Object.assign({ id: nextId++, date: TODAY, time: nowTime(), type: 'expense', cur, base: D.toEur(p.amount, cur), merchant: null, cat: null, flags: [], tags: [] }, p);
+    const t = Object.assign({ id: nextId++, date: TODAY, time: nowTime(), type: 'expense', cur, base: D.toEur(p.amount, cur), title: null, merchant: null, cat: null, flags: [], tags: [] }, p);
     if (t.share != null) t.shareBase = D.toEur(t.share, cur);
     T.push(t); bump();
     return t;
@@ -478,29 +516,44 @@
   }
   function refund(id, amount) {
     const t = T.find((x) => x.id === id);
-    return create({ type: 'refund', account: t.account, amount, merchant: `${t.merchant || 'Entry'} refund`, cat: t.cat, subcat: t.subcat, flags: ['refund'], of: id });
+    return create({ type: 'refund', account: t.account, amount, title: `${titleOf(t)} refund`, merchant: t.merchant, cat: t.cat, subcat: t.subcat, flags: ['refund'], of: id });
   }
   function repay(id, amount, account) {
     const t = T.find((x) => x.id === id);
-    return create({ type: 'repayment', account: account || t.account, amount, merchant: `Repaid for ${t.merchant || 'entry'}`, cat: null, of: id, flags: [] });
+    return create({ type: 'repayment', account: account || t.account, amount, title: `Repaid for ${titleOf(t)}`, cat: null, of: id, flags: [] });
   }
-  function confirmRecurring(id) {
+  function markPaid(id, amount) {
     const r = D.RECURRING.find((x) => x.id === id);
-    r.state = 'posted';
-    const t = create({ type: r.kind === 'income' ? 'income' : 'expense', account: r.account, amount: r.amount, merchant: r.name, cat: r.cat, subcat: r.subcat, flags: ['recurring'], date: r.date > TODAY ? TODAY : r.date });
-    const [y, m] = r.date.split('-').map(Number);
-    const ny = m === 12 ? y + 1 : y; const nm = m === 12 ? 1 : m + 1;
-    const nextDate = ymd(ny, nm, Math.min(r.day, daysInMonth(ny, nm)));
-    if (!D.RECURRING.some((x) => x.name === r.name && x.date === nextDate)) D.RECURRING.push(Object.assign({}, r, { id: `r${nextId++}`, date: nextDate, state: 'planned' }));
+    const amt = amount || r.amount;
+    const date = r.every === 'Daily' ? r.date : TODAY;
+    const t = create({ type: r.kind === 'income' ? 'income' : 'expense', account: r.account, amount: amt, title: r.name, cat: r.cat, subcat: r.subcat, flags: ['recurring'], date, rec: r.id, every: r.every });
+    if (r.varies) r.amount = amt;
+    r.date = advance(r.date, r.every, r.day);
     bump();
     return t;
   }
+  function skip(id) { const r = D.RECURRING.find((x) => x.id === id); r.date = advance(r.date, r.every, r.day); bump(); }
+  function addRepeat(p) {
+    const r = Object.assign({ id: `r${nextId++}`, kind: 'expense', varies: false }, p);
+    r.cur = D.acc(r.account).cur; r.day = Number(r.date.slice(8));
+    D.RECURRING.push(r); bump();
+    return r;
+  }
+  function editRepeat(id, patch) {
+    const r = D.RECURRING.find((x) => x.id === id);
+    Object.assign(r, patch);
+    r.cur = D.acc(r.account).cur;
+    if (patch.date) r.day = Number(patch.date.slice(8));
+    bump();
+    return r;
+  }
+  function stopRepeat(id) { D.RECURRING.splice(D.RECURRING.findIndex((r) => r.id === id), 1); bump(); }
   function reconcile(id, real) {
     const a = D.acc(id);
     const diff = balanceOf(id) - real;
     checks[id] = TODAY;
     if (!diff) { bump(); return null; }
-    return create({ type: 'adjustment', account: id, amount: diff, merchant: 'Untracked', cat: null, flags: [] });
+    return create({ type: 'adjustment', account: id, amount: diff, title: 'Untracked', cat: null, flags: [] });
   }
   const untracked = (id) => T.filter((t) => t.type === 'adjustment' && t.account === id).reduce((s, t) => s - t.amount, 0);
   function isReconciled(t) { return t.date <= (checks[t.account] || ''); }
@@ -530,7 +583,7 @@
 
   // First launch, Start empty: the session continues with one account and no history.
   function startEmpty(a) {
-    T.length = 0; D.RECURRING.length = 0; D.GOALS.length = 0; BUDGETS.length = 0; NOTES.length = 0; TEMPLATES.length = 0;
+    T.length = 0; D.RECURRING.length = 0; D.GOALS.length = 0; BUDGETS.length = 0; NOTES.length = 0;
     D.ACCOUNTS.splice(0, D.ACCOUNTS.length, { id: 'main', name: a.name, cur: a.cur, open: a.open, icon: 'wallet', kind: 'Bank account' });
     Object.keys(checks).forEach((k) => delete checks[k]);
     checks.main = TODAY;
@@ -557,26 +610,26 @@
   // A simulated statement for Main Bank: rows that match, rows that are missing, a likely duplicate.
   function statement() {
     const recent = T.filter((t) => t.account === 'main' && t.type === 'expense' && t.date >= '2026-10-01' && t.date <= '2026-10-27').slice(0, 7);
-    const rows = recent.map((t, i) => ({ id: `s${i}`, date: t.date, text: (t.merchant || 'Card payment').toUpperCase(), amount: t.amount, status: 'matched', tx: t.id }));
+    const rows = recent.map((t, i) => ({ id: `s${i}`, date: t.date, text: (t.merchant || t.title || 'Card payment').toUpperCase(), amount: t.amount, status: 'matched', tx: t.id }));
     rows.push({ id: 'm1', date: '2026-10-24', text: 'BANK FEE OCTOBER', amount: 450, status: 'missing', cat: 'bills', add: true });
     rows.push({ id: 'm2', date: '2026-10-19', text: 'KONZUM ČENGIĆ VILA', amount: 2340, status: 'missing', cat: 'food', subcat: 'groceries', add: true });
     rows.push({ id: 'm3', date: '2026-10-11', text: 'TERMINAL 4471 ŠIŠMIŠ', amount: 680, status: 'missing', cat: null, add: true });
     const base = recent[1] || recent[0];
-    rows.push({ id: 'd1', date: addDays(base.date, 1), text: `${(base.merchant || 'Card').toUpperCase()} POS`, amount: base.amount, status: 'duplicate', tx: base.id, skip: true });
+    rows.push({ id: 'd1', date: addDays(base.date, 1), text: `${(base.merchant || base.title || 'Card').toUpperCase()} POS`, amount: base.amount, status: 'duplicate', tx: base.id, skip: true });
     return rows.sort((a, b) => (a.date < b.date ? 1 : -1));
   }
   function importStatement(rows) {
-    rows.filter((r) => r.status === 'missing' && r.add).forEach((r) => create({ account: 'main', amount: r.amount, merchant: r.text, cat: r.cat, subcat: r.subcat, date: r.date, flags: r.cat ? ['imported'].slice(1) : ['review'] }));
-    rows.filter((r) => r.status === 'duplicate' && !r.skip).forEach((r) => create({ account: 'main', amount: r.amount, merchant: r.text, cat: null, date: r.date, flags: ['review'] }));
+    rows.filter((r) => r.status === 'missing' && r.add).forEach((r) => create({ account: 'main', amount: r.amount, title: r.text, cat: r.cat, subcat: r.subcat, date: r.date, flags: r.cat ? ['imported'].slice(1) : ['review'] }));
+    rows.filter((r) => r.status === 'duplicate' && !r.skip).forEach((r) => create({ account: 'main', amount: r.amount, title: r.text, cat: null, date: r.date, flags: ['review'] }));
   }
 
   window.Ledger = {
-    state, S, BUDGETS, TEMPLATES, NOTES, SUBS, MON, MONTH, WEEK, checks, TODAY, PEG,
+    state, S, BUDGETS, NOTES, EVERY, PER_MONTH, SUBS, MON, MONTH, WEEK, checks, TODAY, PEG,
     addDays, diffDays, toDate, shortDate, longDate, weekdayOf, daysInMonth, pad, ymd,
-    parentOf, tiedTo, applies, catIds, subsOf, allCats, chips, pinChip, merchants, fold, matches, filterTx, countedFor, tags,
-    periodOf, current, prevPeriod, nextPeriod, weekOf, stats, periodStats, balanceOf, totalAt, forecast, dailyNormal, nextPayday,
+    parentOf, tiedTo, applies, catIds, subsOf, allCats, chips, pinChip, titles, titleOf, fold, matches, filterTx, countedFor, tags,
+    periodOf, current, prevPeriod, nextPeriod, weekOf, stats, periodStats, balanceOf, totalAt, forecast, dailyNormal, nextPayday, occurrences, advance,
     budgetView, budgetHistory, costType, costTypes, subscriptionTotal, insights, owedList,
-    checkpoint, bump, create, update, remove, duplicate, refund, repay, confirmRecurring, reconcile, untracked, isReconciled,
+    checkpoint, bump, create, update, remove, duplicate, refund, repay, markPaid, skip, addRepeat, editRepeat, stopRepeat, reconcile, untracked, isReconciled,
     addCategory, usage, reassign, setTies, archive, counts, sizeOf, exportFile, sampleFiles, statement, importStatement, startEmpty,
   };
 })(window.Ledgerly);

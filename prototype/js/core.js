@@ -93,12 +93,12 @@
     const p = o || {};
     const a = `data-key="t${t.id}" ${act(p.name || 'openTx', t.id)} ${p.extra || ''}`;
     const sel = p.selected ? 'is-selected' : '';
-    if (t.type === 'transfer') return `<button type="button" class="lg-tx lg-tx--transfer ${sel}" ${a}><span class="lg-tx__lead">${L.icon('transfer', 20, 'Transfer')}</span><span class="lg-tx__body"><span class="lg-tx__name">${esc(t.merchant)}</span><span class="lg-tx__meta">${txMeta(t)}</span></span><span class="lg-tx__amount">${txMoney(t)}</span></button>`;
+    if (t.type === 'transfer') return `<button type="button" class="lg-tx lg-tx--transfer ${sel}" ${a}><span class="lg-tx__lead">${L.icon('transfer', 20, 'Transfer')}</span><span class="lg-tx__body"><span class="lg-tx__name">${esc(G.titleOf(t))}</span><span class="lg-tx__meta">${txMeta(t)}</span></span><span class="lg-tx__amount">${txMoney(t)}</span></button>`;
     const neutral = t.type === 'adjustment' || t.type === 'repayment';
     const c = t.cat ? L.cat(t.subcat || t.cat) : null;
     const color = c ? catColor(c) : neutral ? 'var(--neutral)' : 'var(--warning)';
     const ic = neutral ? (t.type === 'repayment' ? 'people' : 'flag') : c ? c.icon : 'flag';
-    return `<button type="button" class="lg-tx ${sel}" style="--chip-color:${color}" ${a}><span class="lg-tx__lead">${L.icon(ic, 20)}</span><span class="lg-tx__body"><span class="lg-tx__name">${t.merchant ? esc(t.merchant) : 'No merchant'}</span><span class="lg-tx__meta">${txMeta(t)}${ui.flags(t.flags.filter((f) => KNOWN.includes(f)))}</span></span><span class="lg-tx__amount">${txMoney(t)}</span></button>`;
+    return `<button type="button" class="lg-tx ${sel}" style="--chip-color:${color}" ${a}><span class="lg-tx__lead">${L.icon(ic, 20)}</span><span class="lg-tx__body"><span class="lg-tx__name">${esc(G.titleOf(t))}</span><span class="lg-tx__meta">${txMeta(t)}${ui.flags(t.flags.filter((f) => KNOWN.includes(f)))}</span></span><span class="lg-tx__amount">${txMoney(t)}</span></button>`;
   };
 
   // ---- Navigation. Going back keeps scroll position and filters ----

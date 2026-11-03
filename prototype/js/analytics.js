@@ -97,7 +97,7 @@
     const s = G.periodStats(end);
     const subs = G.subsOf(id).map((x) => ({ id: x.id, name: x.name, amount: s.bySub[x.id] || 0 })).filter((x) => x.amount).sort((a, b) => b.amount - a.amount);
     const merchants = {};
-    G.filterTx({ cat: id, spending: true, start: list[0].start, end: end.end }).forEach((t) => { const k = t.merchant || 'No merchant'; merchants[k] = merchants[k] || { n: 0, sum: 0 }; merchants[k].n += 1; merchants[k].sum += D.counted(t); });
+    G.filterTx({ cat: id, spending: true, start: list[0].start, end: end.end }).forEach((t) => { const k = G.titleOf(t); merchants[k] = merchants[k] || { n: 0, sum: 0 }; merchants[k].n += 1; merchants[k].sum += D.counted(t); });
     const top = Object.keys(merchants).map((k) => Object.assign({ name: k }, merchants[k])).sort((a, b) => b.sum - a.sum).slice(0, 5);
     const pct = prevV ? Math.round(((nowV - prevV) / prevV) * 100) : null;
     const tile = (label, html, delta) => `<div class="lg-metric"><span class="lg-metric__label">${label}</span><span class="lg-metric__value">${html}</span><span class="lg-metric__delta">${delta || ''}</span></div>`;
@@ -105,7 +105,7 @@
       <div class="lg-metrics">${tile(end.short, P.eur(nowV), pct == null ? '' : `${pct >= 0 ? '+' : '−'}${Math.abs(pct)}% vs ${list[4].short}`)}${tile('Five-month average', P.eur(avg), `${list[0].short} to ${list[4].short}`)}</div>
       <div class="lg-card">${P.ch.bars(rows, `How does ${esc(c.name)} compare by month?`)}</div>
       ${subs.length ? `${P.section('Subcategories')}<div class="lg-card lg-card--flush">${subs.map((x) => `<button type="button" class="lg-row" ${act('drill', P.drillArg({ cat: x.id, spending: true, start: end.start, end: end.end, label: `${x.name}, ${end.label}` }))}>${P.catIcon(x.id)}<span class="lg-row__body"><span class="lg-row__title">${esc(x.name)}</span></span><span class="lg-row__trail">${P.eur(x.amount)}</span></button>`).join('')}</div>` : ''}
-      ${top.length ? `${P.section('Where it was spent')}<div class="lg-card lg-card--flush">${top.map((m) => `<div class="lg-row" style="cursor:default"><span class="lg-row__body"><span class="lg-row__title">${esc(m.name)}</span><span class="lg-row__sub">${m.n} ${m.n === 1 ? 'entry' : 'entries'} in six months</span></span><span class="lg-row__trail">${P.eur(m.sum)}</span></div>`).join('')}</div>` : ''}
+      ${top.length ? `${P.section('Most used titles')}<div class="lg-card lg-card--flush">${top.map((m) => `<div class="lg-row" style="cursor:default"><span class="lg-row__body"><span class="lg-row__title">${esc(m.name)}</span><span class="lg-row__sub">${m.n} ${m.n === 1 ? 'entry' : 'entries'} in six months</span></span><span class="lg-row__trail">${P.eur(m.sum)}</span></div>`).join('')}</div>` : ''}
       ${P.btn('See all transactions', 'drill', P.drillArg({ cat: id, spending: true, label: esc(c.name) }), { block: true, kind: 'secondary' })}
     </div></div>`;
   };

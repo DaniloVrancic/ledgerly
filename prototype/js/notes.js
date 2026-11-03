@@ -7,7 +7,7 @@
 
   // ---- Notebook ----
   const LINK_LABEL = {
-    transaction: (id) => { const t = P.byId(id); return t ? `${t.merchant || 'Entry'}, ${G.shortDate(t.date)}` : 'Deleted entry'; },
+    transaction: (id) => { const t = P.byId(id); return t ? `${G.titleOf(t)}, ${G.shortDate(t.date)}` : 'Deleted entry'; },
     category: (id) => L.cat(id).name, account: (id) => D.acc(id).name, date: (id) => G.longDate(id),
     budget: (id) => { const b = G.BUDGETS.find((x) => x.id === id); return b ? `${L.cat(b.cat).name} budget` : 'Deleted budget'; },
     goal: (id) => { const g = D.GOALS.find((x) => x.id === id); return g ? g.name : 'Deleted goal'; },
@@ -36,7 +36,7 @@
     const n = G.NOTES.find((x) => x.id === id);
     if (!n) return P.scroll(P.screenHead('Note'), P.state('note', 'Note removed', 'This note is no longer in Ledgerly.'));
     const links = n.links.map((l, i) => `<div class="lg-inline" data-key="l${i}" style="flex-wrap:nowrap">${P.pill(esc(LINK_LABEL[l.type](l.id)), false, 'noteLinkOpen', `${l.type}|${l.id}`, LINK_ICON[l.type])}${ro() ? '' : P.iconBtn('x', 'Remove link', 'noteUnlink', `${id}|${i}`)}</div>`).join('');
-    const atts = `<div class="p-attachments">${Array.from({ length: n.att || 0 }, (_, i) => P.receiptArt({ merchant: n.title }, i)).join('')}</div>`;
+    const atts = `<div class="p-attachments">${Array.from({ length: n.att || 0 }, (_, i) => P.receiptArt({ title: n.title }, i)).join('')}</div>`;
     if (ro()) return P.scroll(P.screenHead(esc(n.title), G.longDate(n.date)), `<div class="lg-card"><p class="p-note" style="white-space:pre-wrap">${esc(n.body)}</p></div>${links ? `<div class="lg-field"><span class="lg-field__label">Linked to</span>${links}</div>` : ''}`, 'app__narrow');
     return P.scroll(P.screenHead('Note', G.longDate(n.date)), `<input class="p-title-input" data-in="noteTitle" data-arg="${esc(id)}" aria-label="Title" placeholder="Title" value="${esc(n.title)}" ${n.title ? '' : 'data-autofocus'}>
       <div class="lg-inline">${P.btn('Bold', 'noteFormat', `${id}|bold`, { small: true, kind: 'secondary' })}${P.btn('List', 'noteFormat', `${id}|list`, { small: true, kind: 'secondary' })}</div>
@@ -74,7 +74,7 @@
     const opts = {
       category: G.catIds('expense').map((c) => [c, L.cat(c).name]), account: D.ACCOUNTS.map((a) => [a.id, a.name]),
       budget: G.BUDGETS.map((b) => [b.id, `${L.cat(b.cat).name} budget`]), goal: D.GOALS.map((g) => [g.id, g.name]),
-      transaction: D.transactions.slice(0, 40).map((t) => [t.id, `${G.shortDate(t.date)} · ${t.merchant || 'No merchant'} · ${L.fmt(t.amount, t.cur)}`]),
+      transaction: D.transactions.slice(0, 40).map((t) => [t.id, `${G.shortDate(t.date)} · ${G.titleOf(t)} · ${L.fmt(t.amount, t.cur)}`]),
     };
     const target = n.type === 'date' ? P.input('nlDate', n.target, { type: 'date', label: 'Date' }) : P.select('nlTarget', n.target, opts[n.type], { label: 'Link to' });
     return `<h3>Add a link</h3><div class="lg-stack" style="gap:12px">${P.field('Type', `<div class="lg-add__pills">${Object.keys(LINK_ICON).map((t) => P.pill(t[0].toUpperCase() + t.slice(1), n.type === t, 'nlType', t, LINK_ICON[t])).join('')}</div>`)}${P.field('Link to', target)}${P.btn('Add link', 'nlSave', null, { kind: 'primary', block: true })}</div>`;
@@ -106,14 +106,14 @@
     if (r.on.budgets) parts.push(`<table><thead><tr><th>Budget</th><th>Used</th><th>Spent of limit</th></tr></thead><tbody>${G.BUDGETS.filter((b) => b.every === 'Monthly').map((b) => { const v = G.budgetView(b, x.end > G.TODAY ? G.TODAY : x.end); return `<tr><td>${esc(L.cat(b.cat).name)}</td><td>${Math.round(v.ratio * 100)}%</td><td>${pdfMoney(v.spent)} of ${pdfMoney(v.limit)}</td></tr>`; }).join('')}</tbody></table>`);
     if (r.on.accounts) { const end = x.end > G.TODAY ? G.TODAY : x.end; parts.push(`<table><thead><tr><th>Account on ${G.shortDate(end)}</th><th>Balance</th></tr></thead><tbody>${D.ACCOUNTS.map((a) => `<tr><td>${esc(a.name)}</td><td>${L.fmt(G.balanceOf(a.id, end), a.cur)}</td></tr>`).join('')}<tr><td><b>Total balance</b></td><td><b>${pdfMoney(G.totalAt(end))}</b></td></tr></tbody></table>`); }
     if (r.on.transfers) { const list = s.list.filter((t) => t.type === 'transfer'); parts.push(`<table><thead><tr><th>Transfers, not income or spending</th><th>Amount</th></tr></thead><tbody>${list.slice(0, 6).map((t) => `<tr><td>${G.shortDate(t.date)} · ${D.acc(t.account).name} to ${D.acc(t.to).name}</td><td>${L.fmt(t.amount, t.cur)}</td></tr>`).join('') || '<tr><td>None</td><td></td></tr>'}</tbody></table>`); }
-    if (r.on.transactions) parts.push(`<table><thead><tr><th>Transactions</th><th>Amount</th></tr></thead><tbody>${s.list.slice(0, 12).map((t) => `<tr><td>${G.shortDate(t.date)} · ${esc(t.merchant || 'No merchant')}</td><td>${L.fmt(t.amount, t.cur)}</td></tr>`).join('')}${s.list.length > 12 ? `<tr><td>${s.list.length - 12} more entries in the report</td><td></td></tr>` : ''}</tbody></table>`);
+    if (r.on.transactions) parts.push(`<table><thead><tr><th>Transactions</th><th>Amount</th></tr></thead><tbody>${s.list.slice(0, 12).map((t) => `<tr><td>${G.shortDate(t.date)} · ${esc(G.titleOf(t))}</td><td>${L.fmt(t.amount, t.cur)}</td></tr>`).join('')}${s.list.length > 12 ? `<tr><td>${s.list.length - 12} more entries in the report</td><td></td></tr>` : ''}</tbody></table>`);
     if (r.on.notes) { const n = G.NOTES.filter((y) => y.date >= x.start && y.date <= x.end); parts.push(`<table><thead><tr><th>Notes</th></tr></thead><tbody>${n.map((y) => `<tr><td>${esc(y.title)}</td></tr>`).join('') || '<tr><td>None in this period</td></tr>'}</tbody></table>`); }
     return `<div class="lg-print" style="max-width:none">${parts.join('')}</div>`;
   }
   function csvPreview() {
     const x = repRange(); const rows = G.stats(x.start, x.end).list;
-    const line = (t) => `<tr><td>${t.date}</td><td>${t.type}</td><td>${esc(t.merchant || '')}</td><td>${esc(t.cat ? L.cat(t.subcat || t.cat).name : '')}</td><td>${(t.amount / 100).toFixed(2)}</td><td>${t.cur}</td><td>${(t.base / 100).toFixed(2)}</td></tr>`;
-    return `<div class="lg-card lg-card--flush"><div class="p-scrollbox"><table class="p-table"><thead><tr>${['date', 'type', 'merchant', 'category', 'amount', 'currency', 'amount_eur'].map((h) => `<th><button type="button" tabindex="-1">${h}</button></th>`).join('')}</tr></thead><tbody>${rows.slice(0, 10).map(line).join('')}</tbody></table></div></div><p class="p-note">${rows.length} rows in this file. All amounts are as entered, with the frozen EUR value beside them.</p>`;
+    const line = (t) => `<tr><td>${t.date}</td><td>${t.type}</td><td>${esc(t.title || '')}</td><td>${esc(t.merchant || '')}</td><td>${esc(t.cat ? L.cat(t.subcat || t.cat).name : '')}</td><td>${(t.amount / 100).toFixed(2)}</td><td>${t.cur}</td><td>${(t.base / 100).toFixed(2)}</td></tr>`;
+    return `<div class="lg-card lg-card--flush"><div class="p-scrollbox"><table class="p-table"><thead><tr>${['date', 'type', 'title', 'merchant', 'category', 'amount', 'currency', 'amount_eur'].map((h) => `<th><button type="button" tabindex="-1">${h}</button></th>`).join('')}</tr></thead><tbody>${rows.slice(0, 10).map(line).join('')}</tbody></table></div></div><p class="p-note">${rows.length} rows in this file. All amounts are as entered, with the frozen EUR value beside them.</p>`;
   }
   P.views.reports = function () {
     const r = st.rep; const x = repRange();

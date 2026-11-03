@@ -22,7 +22,7 @@
   function filterBar() {
     const f = st.filters;
     const n = activeChips();
-    return `<span class="lg-input lg-search">${L.icon('search', 20)}<input data-in="txSearch" data-search aria-label="Search transactions" value="${esc(f.q || '')}" placeholder="Search merchant or amount">${f.q ? `<button type="button" class="lg-icon-btn" style="min-width:32px;min-height:32px" aria-label="Clear search" ${act('clearFilter', 'q')}>${L.icon('x', 16)}</button>` : ''}</span>
+    return `<span class="lg-input lg-search">${L.icon('search', 20)}<input data-in="txSearch" data-search aria-label="Search transactions" value="${esc(f.q || '')}" placeholder="Search title, merchant or amount">${f.q ? `<button type="button" class="lg-icon-btn" style="min-width:32px;min-height:32px" aria-label="Clear search" ${act('clearFilter', 'q')}>${L.icon('x', 16)}</button>` : ''}</span>
       <div class="app__rowchips">${P.pill('Filters', st.sheet && st.sheet.name === 'filters', 'openSheet', 'filters', 'tag')}${n || quick()}</div>`;
   }
   P.acts.quickFilter = (json) => { Object.assign(st.filters, JSON.parse(json)); st.limit = 40; P.render(); };
@@ -160,9 +160,9 @@
   };
 
   // ---- Desktop: a dense, sortable, read-only table with a details side panel ----
-  const COLS = [['date', 'Date'], ['merchant', 'Merchant'], ['cat', 'Category'], ['account', 'Account'], ['base', 'Amount']];
+  const COLS = [['date', 'Date'], ['title', 'Title'], ['cat', 'Category'], ['account', 'Account'], ['base', 'Amount']];
   const sortValue = {
-    date: (t) => `${t.date}${t.time}`, merchant: (t) => G.fold(t.merchant), cat: (t) => G.fold(t.cat ? L.cat(t.subcat || t.cat).name : ''), account: (t) => D.acc(t.account).name,
+    date: (t) => `${t.date}${t.time}`, title: (t) => G.fold(G.titleOf(t)), cat: (t) => G.fold(t.cat ? L.cat(t.subcat || t.cat).name : ''), account: (t) => D.acc(t.account).name,
     base: (t) => (t.type === 'income' || t.type === 'refund' || t.type === 'repayment' ? t.base : -t.base),
   };
   P.acts.sort = (k) => { st.sort = { key: k, dir: st.sort.key === k ? -st.sort.dir : (k === 'date' || k === 'base' ? -1 : 1) }; P.render(); };
@@ -174,7 +174,7 @@
       const c = t.cat ? L.cat(t.subcat || t.cat) : null;
       const label = t.type === 'transfer' ? 'Transfer' : t.type === 'adjustment' ? 'Untracked' : t.type === 'repayment' ? 'Repayment' : t.parts ? 'Split' : c ? c.name : 'Needs a category';
       const ic = t.type === 'transfer' ? 'transfer' : t.type === 'adjustment' ? 'flag' : t.type === 'repayment' ? 'people' : c ? c.icon : 'flag';
-      return `<tr data-key="r${t.id}" class="${st.panelTx === t.id ? 'is-selected' : ''}" tabindex="0" ${act('openTx', t.id)}><td style="white-space:nowrap">${G.shortDate(t.date)} ${t.date.slice(0, 4)}</td><td>${t.merchant ? esc(t.merchant) : 'No merchant'}${ui.flags(t.flags.filter((f) => ['receipt', 'split', 'shared', 'recurring', 'refund', 'review'].includes(f)))}</td><td><span class="p-table__cat" style="--chip-color:${c ? P.catColor(c) : 'var(--neutral)'}"><span class="lg-chip__icon">${L.icon(ic, 16)}</span>${esc(label)}</span></td><td class="lg-muted">${t.type === 'transfer' ? `${D.acc(t.account).name} to ${D.acc(t.to).name}` : D.acc(t.account).name}</td><td data-end>${P.txMoney(t)}</td></tr>`;
+      return `<tr data-key="r${t.id}" class="${st.panelTx === t.id ? 'is-selected' : ''}" tabindex="0" ${act('openTx', t.id)}><td style="white-space:nowrap">${G.shortDate(t.date)} ${t.date.slice(0, 4)}</td><td>${esc(G.titleOf(t))}${t.merchant && t.merchant !== t.title ? ` <span class="lg-faint">${esc(t.merchant)}</span>` : ''}${ui.flags(t.flags.filter((f) => ['receipt', 'split', 'shared', 'recurring', 'refund', 'review'].includes(f)))}</td><td><span class="p-table__cat" style="--chip-color:${c ? P.catColor(c) : 'var(--neutral)'}"><span class="lg-chip__icon">${L.icon(ic, 16)}</span>${esc(label)}</span></td><td class="lg-muted">${t.type === 'transfer' ? `${D.acc(t.account).name} to ${D.acc(t.to).name}` : D.acc(t.account).name}</td><td data-end>${P.txMoney(t)}</td></tr>`;
     }).join('');
     return `<div class="lg-card lg-card--flush"><div class="p-scrollbox"><table class="p-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div></div>`;
   }
@@ -201,7 +201,7 @@
   const unlocked = new Set();
   P.acts.unlockTx = (id) => { unlocked.add(Number(id)); P.render(); };
   function receiptArt(t, i) {
-    return `<svg class="p-receipt" viewBox="0 0 96 128" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" role="img" aria-label="Placeholder receipt ${i + 1} for ${esc(t.merchant || 'this entry')}"><path d="M14 8h68v110l-8-5-9 5-8-5-9 5-8-5-9 5-8-5-9 5V8z"/><path d="M26 28h44M26 42h30M26 54h36M26 66h24M26 86h44"/></svg>`;
+    return `<svg class="p-receipt" viewBox="0 0 96 128" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" role="img" aria-label="Placeholder receipt ${i + 1} for ${esc(G.titleOf(t))}"><path d="M14 8h68v110l-8-5-9 5-8-5-9 5-8-5-9 5-8-5-9 5V8z"/><path d="M26 28h44M26 42h30M26 54h36M26 66h24M26 86h44"/></svg>`;
   }
   P.receiptArt = receiptArt;
   // Desktop is a read-only copy, so details are a plain summary, not disabled fields.
@@ -219,7 +219,7 @@
     const share = t.share != null ? `<div class="lg-card lg-stack" style="gap:0"><div class="label">My share</div>${P.kv('Paid', P.eur(t.base))}${P.kv('Counted as spending', P.eur(t.shareBase))}${P.kv(`Owed to me${t.owedFrom ? `, ${esc(t.owedFrom)}` : ''}`, P.eur(t.base - t.shareBase - repaid), 'p-kv--total')}</div>` : '';
     const n = t.flags.includes('receipt') ? (t.attachments || 1) : 0;
     return `<div class="lg-between"><span class="label">${kinds[t.type]}</span>${panel ? P.iconBtn('x', 'Close details', 'closePanel') : ''}</div>
-      <div><div class="lg-row__title">${t.merchant ? esc(t.merchant) : 'No merchant'}</div><div class="amount-large">${P.txMoney(t)}</div></div>
+      <div><div class="lg-row__title">${esc(G.titleOf(t))}</div>${t.merchant ? `<div class="body-small lg-muted">${esc(t.merchant)}</div>` : ''}<div class="amount-large">${P.txMoney(t)}</div></div>
       <div class="lg-stack" style="gap:0">${rows}</div>${parts}${share}
       ${t.note ? `<p class="p-note" style="white-space:pre-wrap">${esc(t.note)}</p>` : ''}
       ${n ? `<div class="lg-field"><span class="lg-field__label">Attachments</span><div class="p-attachments">${Array.from({ length: n }, (_, i) => receiptArt(t, i)).join('')}</div></div>` : ''}
@@ -241,7 +241,7 @@
     const repaid = t.share != null ? D.transactions.filter((r) => r.type === 'repayment' && r.of === t.id).reduce((s, r) => s + r.base, 0) : 0;
     const owed = t.share != null ? t.base - t.shareBase - repaid : 0;
     const share = t.share != null ? `<div class="lg-card lg-stack" style="gap:0"><div class="label lg-inline" style="gap:4px">My share${P.info('Owed to me')}</div>${P.kv('Paid', P.eur(t.base))}${P.kv('My share, counted as spending', P.eur(t.shareBase))}${repaid ? P.kv('Repaid', P.eur(repaid)) : ''}${P.kv(`Owed to me${t.owedFrom ? `, ${esc(t.owedFrom)}` : ''}`, P.eur(owed), 'p-kv--total')}${owed > 0 && !ro ? `<div style="margin-top:8px">${P.btn(`Record ${L.fmt(owed, 'EUR')} repayment`, 'repay', t.id, { small: true, kind: 'secondary', block: true })}</div>` : ''}</div>` : '';
-    const linked = t.of ? (() => { const o = byId(t.of); return o ? `<div class="p-note">${t.type === 'refund' ? 'Refund of' : 'Repayment for'}: ${P.link(esc(o.merchant || 'entry'), 'openTx', o.id)}</div>` : ''; })() : '';
+    const linked = t.of ? (() => { const o = byId(t.of); return o ? `<div class="p-note">${t.type === 'refund' ? 'Refund of' : 'Repayment for'}: ${P.link(esc(G.titleOf(o)), 'openTx', o.id)}</div>` : ''; })() : '';
     const refunds = D.transactions.filter((r) => r.type === 'refund' && r.of === t.id);
     const refundsHtml = refunds.length ? `<div class="p-note">Refunded: ${refunds.map((r) => P.link(L.fmt(r.amount, r.cur), 'openTx', r.id)).join(', ')}</div>` : '';
     const notes = G.NOTES.filter((n) => n.links.some((l) => l.type === 'transaction' && l.id === t.id));
@@ -256,7 +256,7 @@
     const transferNote = t.type === 'transfer' ? `<p class="p-note">Transfers never count as income or spending.</p>` : '';
     return `${header}${warn}
       ${f(`Amount, ${cur === 'EUR' ? 'EUR' : 'KM'}`, P.input('txAmount', (t.amount / 100).toFixed(2), { arg: t.id, mode: 'decimal', label: 'Amount' }))}${money}
-      ${t.type === 'adjustment' ? '' : f(t.type === 'transfer' ? 'Label' : 'Merchant', P.input('txMerchant', t.merchant || '', { arg: t.id, label: 'Merchant', placeholder: 'No merchant' }))}
+      ${t.type === 'adjustment' ? '' : f('Title', P.input('txTitle', t.title || '', { arg: t.id, label: 'Title', placeholder: 'No title' }))}${t.type === 'adjustment' || t.type === 'transfer' ? '' : f('Merchant, optional', P.input('txMerchant', t.merchant || '', { arg: t.id, label: 'Merchant, optional', placeholder: 'None' }))}${P.repeatLine(t)}
       ${catRow}${transferNote}${parts}${share}${linked}${refundsHtml}${accountField}
       <div class="p-grid2">${f('Date', P.input('txDate', t.date, { arg: t.id, type: 'date', label: 'Date' }))}${P.field('Time', `<span class="lg-input is-disabled"><input disabled aria-label="Time" value="${t.time}"></span>`, 'Recorded automatically.')}</div>
       ${f('Tags', P.input('txTags', (t.tags || []).join(', '), { arg: t.id, label: 'Tags', placeholder: 'None' }))}
@@ -277,7 +277,8 @@
     return `<div class="app__head ${canBack ? '' : 'app__head--root'}">${canBack ? back : ''}<div style="flex:1 1 auto;min-width:0"><h2 class="lg-title">${title}</h2>${sub ? `<div class="app__head-sub">${sub}</div>` : ''}</div>${trail || ''}</div>`;
   };
   P.inputs.txAmount = (v, id) => { const m = P.minorOf(v); if (m > 0) G.update(Number(id), { amount: m }); P.queue(); };
-  P.inputs.txMerchant = (v, id) => { G.update(Number(id), { merchant: v || null }); P.queue(); };
+  P.inputs.txMerchant = (v, id) => { G.update(Number(id), { merchant: v || null }); };
+  P.inputs.txTitle = (v, id) => { G.update(Number(id), { title: v || null }); P.queue(); };
   P.inputs.txAccount = (v, id) => { G.update(Number(id), { account: v }); P.render(); };
   P.inputs.txTo = (v, id) => { G.update(Number(id), { to: v }); P.render(); };
   P.inputs.txDate = (v, id) => { if (v) { G.update(Number(id), { date: v }); P.render(); } };
@@ -295,7 +296,7 @@
     const t = byId(id);
     const left = G.owedList().find((o) => o.t.id === id);
     if (st.repayAmt == null && left) st.repayAmt = (left.left / 100).toFixed(2);
-    return `<h3>Record a repayment</h3><p>Money coming back for ${esc(t.merchant || 'this entry')}. It is not income.</p>
+    return `<h3>Record a repayment</h3><p>Money coming back for ${esc(G.titleOf(t))}. It is not income.</p>
       ${P.field('Amount, EUR', P.input('repayAmt', st.repayAmt || '', { mode: 'decimal', label: 'Amount', focus: true }))}<div style="height:8px"></div>
       ${P.field('Received in', P.select('repayAccount', st.repayAccount || t.account, D.ACCOUNTS.map((a) => [a.id, a.name]), { label: 'Received in' }))}<div style="height:12px"></div>
       ${P.btn('Save repayment', 'repaySave', id, { kind: 'primary', block: true })}`;
@@ -314,7 +315,7 @@
   P.acts.openRefund = (id) => { st.refundAmt = (byId(id).amount / 100).toFixed(2); P.sheet('refund', Number(id)); };
   P.sheets.refund = function (id) {
     const t = byId(id);
-    return `<h3>Record a refund</h3><p>It is linked to ${esc(t.merchant || 'this entry')}, reduces ${esc(P.catName(t.cat))} spending and is never income.</p>
+    return `<h3>Record a refund</h3><p>It is linked to ${esc(G.titleOf(t))}, reduces ${esc(P.catName(t.cat))} spending and is never income.</p>
       ${P.field(`Amount, ${t.cur === 'EUR' ? 'EUR' : 'KM'}`, P.input('refundAmt', st.refundAmt || '', { mode: 'decimal', label: 'Amount', focus: true }))}<div style="height:12px"></div>
       ${P.btn('Save refund', 'refundSave', id, { kind: 'primary', block: true })}`;
   };

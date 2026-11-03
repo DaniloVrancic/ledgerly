@@ -21,7 +21,7 @@ Home S
 ├─ This month tiles → filtered Transactions S
 ├─ Where it went rows → filtered Transactions S
 ├─ Needs attention, at most 3
-│  ├─ Confirm a due item, in the row
+│  ├─ Mark a due repeat paid, in the row
 │  ├─ Review → Needs Review S
 │  ├─ Check → Balance check Sh
 │  ├─ Close → Monthly close S
@@ -30,11 +30,11 @@ Home S
 └─ Backup status line → Backup and data S
 
 Add Sh (from the Add button and the Android widget)
-├─ Templates, amount, merchant memory
+├─ Frequent titles, amount, title with suggestions from earlier titles
 ├─ Expense, Income, Transfer
 ├─ Account and date choices, inside the sheet
 ├─ All categories, inside the sheet → New category, inside the sheet
-├─ More details: tags, split, my share, currency, note, attachments
+├─ More details: repeat, merchant, tags, split, my share, currency, note, attachments
 └─ Saved: confirmation with Undo and Add another
 
 Transactions S
@@ -59,7 +59,7 @@ More S
 ├─ Budgets S → Budget details S, New budget Sh
 ├─ Goals S → Goal details S, New goal Sh, Earmark or release Sh
 ├─ Accounts S → Account details S → Balance check Sh
-├─ Recurring S → Item options Sh, New recurring item Sh
+├─ Recurring S: Due with Mark paid and Skip, Coming up → Edit repeat Sh, New repeat Sh, Amount this time Sh
 ├─ Notebook S → Note details S → Add a link Sh, Photos permission D
 ├─ Reports S, with live preview, PDF and CSV
 ├─ Needs Review S

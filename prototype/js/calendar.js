@@ -22,7 +22,8 @@
     return { list, spend, income, net: income - spend, cat };
   }
   P.dayFacts = facts;
-  const plannedOn = (date) => D.RECURRING.filter((r) => r.date === date && r.state === 'planned');
+  // Daily repeats stay off the grid, so every day does not carry a marker.
+  const plannedOn = (date) => (date > G.TODAY ? G.occurrences(date, date, (r) => r.every !== 'Daily').map((o) => Object.assign({}, o.r, { date, state: 'planned' })) : []);
   const dueOn = (date) => D.RECURRING.filter((r) => r.date === date && r.state === 'due');
   const tip = (date, f) => `${D.dayLabel(date)}: spent ${L.fmt(f.spend, 'EUR')}, income ${L.fmt(f.income, 'EUR')}, net ${L.fmt(f.net, 'EUR', f.net > 0)}`;
 
@@ -93,7 +94,7 @@
     return `<div class="lg-between"><h3 style="margin:0">${D.dayLabel(date)}${date.slice(0, 4) !== '2026' ? ` ${date.slice(0, 4)}` : ''}</h3>${closeAct ? P.iconBtn('x', 'Close', closeAct) : `<span class="body-small lg-muted">${f.list.length} ${f.list.length === 1 ? 'entry' : 'entries'}</span>`}</div>
       <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0">${cell('Spent', P.eur(-f.spend, { tone: f.spend ? 'negative' : undefined }))}${cell('Income', P.eur(f.income, { sign: !!f.income, tone: f.income ? 'positive' : undefined }))}${cell('Net', P.eur(f.net, { sign: f.net > 0, tone: f.net > 0 ? 'positive' : f.net < 0 ? 'negative' : undefined }))}</div>
       ${f.cat ? `<div class="body-small lg-muted" style="margin-bottom:8px">Top category: ${esc(L.cat(f.cat).name)}</div>` : ''}
-      ${planned.length ? `<div class="lg-card lg-card--flush" style="margin-bottom:8px">${planned.map((r) => `<div class="p-row-action"><span class="lg-row__body"><span class="lg-row__title">${esc(r.name)}</span><span class="lg-row__sub">${ui.recurring(r.state)}${L.fmt(r.amount, r.cur)}</span></span>${r.state === 'due' && !ro ? P.btn('Confirm', 'confirmDue', r.id, { small: true, kind: 'secondary' }) : ''}</div>`).join('')}</div>` : ''}
+      ${planned.length ? `<div class="lg-card lg-card--flush" style="margin-bottom:8px">${planned.map((r) => `<div class="p-row-action"><span class="lg-row__body"><span class="lg-row__title">${esc(r.name)}</span><span class="lg-row__sub">${ui.recurring(r.state)}${L.fmt(r.amount, r.cur)}</span></span>${r.state === 'due' && !ro ? P.btn('Mark paid', 'confirmDue', r.id, { small: true, kind: 'secondary' }) : ''}</div>`).join('')}</div>` : ''}
       <div class="lg-card lg-card--flush" style="margin-bottom:12px">${f.list.map((t) => P.txRow(t)).join('') || '<div class="lg-state"><p>No entries on this day.</p></div>'}</div>
       ${noteBlock}
       ${receipts.length ? `<div class="lg-field" style="margin-top:12px"><span class="lg-field__label">Attachments</span><div class="p-attachments">${receipts.map((t, i) => P.receiptArt(t, i)).join('')}</div></div>` : ''}`;

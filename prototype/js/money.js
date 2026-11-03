@@ -147,7 +147,7 @@
     const list = D.accounts().map((a) => `<button type="button" class="lg-row" data-key="a${a.id}" ${act('go', `account:${a.id}`)}><span class="lg-row__lead">${L.icon(a.icon, 20)}</span><span class="lg-row__body"><span class="lg-row__title">${esc(a.name)}</span><span class="lg-row__sub">${a.kind} · ${agoLabel(a.id)}</span></span><span class="lg-row__trail">${L.moneyPair(a.balance, a.cur, a.base, a.balance < 0 ? { tone: 'negative' } : undefined)}</span></button>`).join('');
     const stale = G.diffDays(G.TODAY, G.checks.cash) >= 14;
     const prompt = stale ? `<div class="lg-card lg-card--flush"><div class="lg-attn"><span class="lg-attn__icon">${L.icon('wallet', 20)}</span><span class="lg-row__body"><span class="lg-row__title" style="font-size:.875rem;line-height:1.25rem">Time to count your Cash</span><span class="lg-row__sub">${agoLabel('cash')}. Small purchases are what drift.</span></span>${ro() ? '' : P.btn('Check', 'checkBalance', 'cash', { small: true, kind: 'secondary' })}</div></div>` : '';
-    const owedHtml = owed.length ? `${P.section('Owed to me')}<div class="lg-card lg-card--flush">${owed.map((o) => `<button type="button" class="lg-row" ${act('openTx', o.t.id)}><span class="lg-row__lead">${L.icon('people', 20)}</span><span class="lg-row__body"><span class="lg-row__title">${esc(o.t.owedFrom || o.t.merchant || 'Entry')}</span><span class="lg-row__sub">${esc(o.t.merchant || '')}, ${G.shortDate(o.t.date)}</span></span><span class="lg-row__trail">${P.eur(o.left)}</span></button>`).join('')}</div>` : '';
+    const owedHtml = owed.length ? `${P.section('Owed to me')}<div class="lg-card lg-card--flush">${owed.map((o) => `<button type="button" class="lg-row" ${act('openTx', o.t.id)}><span class="lg-row__lead">${L.icon('people', 20)}</span><span class="lg-row__body"><span class="lg-row__title">${esc(o.t.owedFrom || G.titleOf(o.t))}</span><span class="lg-row__sub">${esc(G.titleOf(o.t))}, ${G.shortDate(o.t.date)}</span></span><span class="lg-row__trail">${P.eur(o.left)}</span></button>`).join('')}</div>` : '';
     return scroll(P.screenHead('Accounts'), `${P.threeFigures()}${prompt}<div class="lg-card lg-card--flush">${list}</div>${owedHtml}<p class="p-note">1 EUR = 1.95583 BAM, a fixed rate.</p>`);
   };
   P.views.account = function (id) {
@@ -186,50 +186,113 @@
     P.withUndo(diff ? `${a.name} checked. ${L.fmt(diff, a.cur, true)} saved as Untracked.` : `${a.name} checked. It matches.`, () => G.reconcile(r.id, real));
   };
 
-  // ---- Recurring: Planned, Due, Posted. Nothing posts silently ----
-  const recRow = (r) => {
-    const income = r.kind === 'income';
-    const when = r.state === 'due' ? `Due ${G.shortDate(r.date)}` : `${G.shortDate(r.date)} · ${esc(D.acc(r.account).name)}`;
-    return `<div class="p-row-action" data-key="${r.id}"><span class="lg-row__body"><span class="lg-row__title">${esc(r.name)}</span><span class="lg-row__sub">${ui.recurring(r.state)}${when}</span></span><span class="p-amount-sm">${L.money(income ? r.amount : -r.amount, r.cur, { sign: income, tone: income ? 'positive' : 'negative' })}</span>${r.state === 'due' && !ro() ? P.btn('Confirm', 'confirmDue', r.id, { small: true, kind: 'secondary' }) : ''}${r.state === 'planned' && !ro() ? P.iconBtn('dots', `Options for ${r.name}`, 'recOpen', r.id) : ''}</div>`;
-  };
+  // ---- Repeats: daily, weekly, monthly or yearly. A Due repeat waits until it is marked paid ----
+  const ORD = (n) => (n % 10 === 1 && n !== 11 ? `${n}st` : n % 10 === 2 && n !== 12 ? `${n}nd` : n % 10 === 3 && n !== 13 ? `${n}rd` : `${n}th`);
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  P.everyLabel = (r) => ({ Daily: 'Every day', Weekly: `Every ${DAYS[G.weekdayOf(r.date)]}`, Monthly: `Monthly, on the ${ORD(r.day || Number(r.date.slice(8)))}`, Yearly: `Yearly, on ${G.shortDate(r.date)}` }[r.every]);
+  P.dueWhen = (r) => (r.date === G.TODAY ? 'Due today' : `Due since ${G.shortDate(r.date)}`);
+  const signed = (r, amount) => { const income = r.kind === 'income'; return L.money(income ? amount : -amount, r.cur, { sign: income, tone: income ? 'positive' : 'negative' }); };
+  const dueRow = (r) => `<div class="p-row-action" data-key="d${r.id}"><span class="lg-row__body"><span class="lg-row__title">${esc(r.name)}</span><span class="lg-row__sub">${ui.recurring('due')}${P.dueWhen(r)}${r.varies ? ', amount changes' : ''}</span></span><span class="p-amount-sm">${signed(r, r.amount)}</span>${ro() ? '' : `<span class="lg-inline" style="gap:4px;flex-wrap:nowrap">${P.btn('Skip', 'skipDue', r.id, { small: true })}${P.btn('Mark paid', 'confirmDue', r.id, { small: true, kind: 'secondary', icon: 'check' })}</span>`}</div>`;
+  const upRow = (r) => `<button type="button" class="lg-row" data-key="u${r.id}" ${ro() ? '' : act('editRepeat', r.id)}><span class="lg-row__lead">${P.catIcon(r.subcat || r.cat)}</span><span class="lg-row__body"><span class="lg-row__title">${esc(r.name)}</span><span class="lg-row__sub">${P.everyLabel(r)} · next ${G.shortDate(r.date)}</span></span><span class="lg-row__trail">${signed(r, r.amount)}${r.varies ? '<span class="caption lg-faint" style="display:block">about</span>' : ''}</span></button>`;
   P.views.recurring = function () {
-    const due = D.RECURRING.filter((r) => r.state === 'due');
-    const planned = D.RECURRING.filter((r) => r.state === 'planned').sort((a, b) => (a.date < b.date ? -1 : 1));
+    const due = D.RECURRING.filter((r) => r.state === 'due').sort((a, b) => (a.date < b.date ? -1 : 1));
+    const up = D.RECURRING.filter((r) => r.state === 'planned').sort((a, b) => (a.date < b.date ? -1 : 1));
     const p = G.current();
-    const posted = G.filterTx({ flag: 'recurring', start: p.start, end: p.end }).slice(0, 12);
+    const posted = G.filterTx({ flag: 'recurring', start: p.start, end: p.end }).slice(0, 10);
     const sub = G.subscriptionTotal();
-    const subs = `<div class="lg-card"><div class="lg-between"><span class="label">Subscriptions</span><span class="caption lg-faint">${sub.list.length} active</span></div><div class="p-grid2" style="margin-top:8px"><div><div class="caption lg-faint">Per month</div><div class="amount-large">${P.eur(sub.month)}</div></div><div><div class="caption lg-faint">Per year</div><div class="amount-large">${P.eur(sub.year)}</div></div></div></div>`;
-    return scroll(P.screenHead('Recurring', '', ro() ? '' : P.iconBtn('plus', 'New recurring item', 'newRec')), `${subs}
-      ${due.length ? `${P.section('Due')}<div class="lg-card lg-card--flush">${due.map(recRow).join('')}</div><p class="p-note">Due items wait for one tap, so nothing is posted twice or silently.</p>` : ''}
-      ${P.section('Planned')}<div class="lg-card lg-card--flush">${planned.map(recRow).join('')}</div>
-      ${P.section('Posted this month')}<div class="lg-card lg-card--flush">${posted.map((t) => P.txRow(t)).join('') || '<div class="lg-state"><p>Nothing posted yet this month.</p></div>'}</div>`);
+    const subs = `<div class="lg-card"><div class="lg-between"><span class="label">Subscriptions</span><span class="caption lg-faint">${sub.list.length} active</span></div><div class="p-grid2" style="margin-top:8px"><div><div class="caption lg-faint">Per month</div><div class="amount-large">${P.eur(sub.month)}</div></div><div><div class="caption lg-faint">Per year</div><div class="amount-large">${P.eur(sub.month * 12)}</div></div></div></div>`;
+    return scroll(P.screenHead('Recurring', '', ro() ? '' : P.iconBtn('plus', 'New repeat', 'newRepeat')), `
+      ${due.length ? `${P.section('Due')}<div class="lg-card lg-card--flush">${due.map(dueRow).join('')}</div><p class="p-note">Nothing is posted by itself. Mark it paid when you have paid it, or skip this one.</p>` : ''}
+      ${P.section('Coming up')}<div class="lg-card lg-card--flush">${up.map(upRow).join('') || P.state('repeat', 'No repeats yet', 'Set a repeat on the Add sheet or here, and the next one is a single tap.', '')}</div>
+      ${ro() ? '' : P.btn('New repeat', 'newRepeat', null, { block: true, kind: 'secondary', icon: 'plus' })}
+      ${subs}
+      ${P.section('Paid this month')}<div class="lg-card lg-card--flush">${posted.map((t) => P.txRow(t)).join('') || '<div class="lg-state"><p>Nothing paid yet this month.</p></div>'}</div>`);
   };
-  P.acts.recOpen = (id) => P.sheet('recItem', id);
-  P.sheets.recItem = function (id) {
+
+  // Mark paid: one tap with Undo. A repeat whose amount changes asks for this time's amount first.
+  P.acts.confirmDue = (id) => {
     const r = D.RECURRING.find((x) => x.id === id);
-    return `<h3>${esc(r.name)}</h3><p>${r.every}, next on ${G.longDate(r.date)}, ${L.fmt(r.amount, r.cur)} from ${esc(D.acc(r.account).name)}.</p>
-      ${P.field(`Amount, ${r.cur === 'EUR' ? 'EUR' : 'KM'}`, P.input('recAmount', (r.amount / 100).toFixed(2), { arg: id, mode: 'decimal', label: 'Amount' }), 'Changes save themselves.')}<div style="height:12px"></div>
-      <div class="lg-stack" style="gap:8px">${P.btn('Mark as due now', 'recDue', id, { kind: 'secondary', block: true })}${P.btn('Stop this item', 'recStop', id, { kind: 'danger', block: true })}</div>`;
+    if (r.varies) { st.paidAmt = (r.amount / 100).toFixed(2); P.sheet('paid', id); return; }
+    P.withUndo(`${esc(r.name)} marked paid, ${L.fmt(r.amount, r.cur)}`, () => G.markPaid(id));
   };
-  P.inputs.recAmount = (v, id) => { const m = P.minorOf(v); if (m > 0) { D.RECURRING.find((r) => r.id === id).amount = m; G.bump(); P.queue(); } };
-  P.acts.recDue = (id) => { st.sheet = null; P.withUndo('Marked as due', () => { const r = D.RECURRING.find((x) => x.id === id); r.state = 'due'; G.bump(); }); };
-  P.acts.recStop = (id) => { st.sheet = null; P.withUndo('Recurring item stopped', () => { D.RECURRING.splice(D.RECURRING.findIndex((r) => r.id === id), 1); G.bump(); }); };
-  P.acts.newRec = () => { st.nr = { name: '', amount: '', account: 'main', cat: 'subscriptions', day: '15' }; P.sheet('newRec'); };
-  P.sheets.newRec = function () {
-    const n = st.nr;
-    const ok = n.name && P.minorOf(n.amount);
-    return `<h3>New recurring item</h3><div class="lg-stack" style="gap:12px">${P.field('Name', P.input('nrName', n.name, { placeholder: 'For example Muzika', label: 'Name', focus: true }))}<div class="p-grid2">${P.field(`Amount, ${D.acc(n.account).cur === 'EUR' ? 'EUR' : 'KM'}`, P.input('nrAmount', n.amount, { mode: 'decimal', placeholder: '9.99', label: 'Amount' }))}${P.field('Day of month', P.input('nrDay', n.day, { mode: 'numeric', label: 'Day of month' }))}</div>${P.field('Account', P.select('nrAccount', n.account, D.ACCOUNTS.map((a) => [a.id, a.name]), { label: 'Account' }))}${P.field('Category', P.select('nrCat', n.cat, G.catIds('expense').map((id) => [id, L.cat(id).name]), { label: 'Category' }))}${P.btn('Save item', 'nrSave', null, { kind: 'primary', block: true, state: ok ? undefined : 'disabled' })}</div>`;
+  P.sheets.paid = function (id) {
+    const r = D.RECURRING.find((x) => x.id === id);
+    return `<h3>How much was ${esc(r.name)}?</h3><p>Last time it was ${L.fmt(r.amount, r.cur)}. ${P.dueWhen(r)}, from ${esc(D.acc(r.account).name)}.</p>
+      ${P.field(`Amount, ${r.cur === 'EUR' ? 'EUR' : 'KM'}`, P.input('paidAmt', st.paidAmt, { mode: 'decimal', label: 'Amount', focus: true }))}<div style="height:12px"></div>
+      ${P.btn('Mark paid', 'paidSave', id, { kind: 'primary', block: true, icon: 'check', state: P.minorOf(st.paidAmt) ? undefined : 'disabled' })}`;
   };
-  P.inputs.nrName = (v) => { st.nr.name = v; P.render(); };
-  P.inputs.nrAmount = (v) => { st.nr.amount = v; P.render(); };
-  P.inputs.nrDay = (v) => { st.nr.day = v; };
-  P.inputs.nrAccount = (v) => { st.nr.account = v; P.render(); };
-  P.inputs.nrCat = (v) => { st.nr.cat = v; };
-  P.acts.nrSave = () => {
-    const n = st.nr; const day = Math.min(28, Math.max(1, Number(n.day) || 1));
-    const today = Number(G.TODAY.slice(8));
-    const date = day > today ? `2026-10-${G.pad(day)}` : `2026-11-${G.pad(day)}`;
+  P.inputs.paidAmt = (v) => { st.paidAmt = v; P.render(); };
+  P.acts.paidSave = (id) => {
+    const r = D.RECURRING.find((x) => x.id === id);
+    const m = P.minorOf(st.paidAmt);
     st.sheet = null;
-    P.withUndo(`${esc(n.name)} planned for ${G.shortDate(date)}`, () => { D.RECURRING.push({ id: `r${Date.now()}`, name: n.name, cat: n.cat, amount: P.minorOf(n.amount), cur: D.acc(n.account).cur, account: n.account, date, day, every: 'Monthly', state: 'planned' }); G.bump(); });
+    P.withUndo(`${esc(r.name)} marked paid, ${L.fmt(m, r.cur)}`, () => G.markPaid(id, m));
+  };
+  P.acts.skipDue = (id) => {
+    const r = D.RECURRING.find((x) => x.id === id);
+    P.withUndo(`${esc(r.name)} skipped. Next on ${G.shortDate(G.advance(r.date, r.every, r.day))}`, () => G.skip(id));
+  };
+
+  // One form for a new repeat and for changing one. Changes to an existing repeat save themselves.
+  P.acts.editRepeat = (id) => { st.rp = { id }; P.sheet('repeat'); };
+  P.newRepeat = (seed) => {
+    st.rp = { id: null, draft: Object.assign({ name: '', amount: '', varies: false, every: 'Monthly', date: G.addDays(G.TODAY, 1), cat: 'subscriptions', subcat: null, account: 'main', kind: 'expense' }, seed) };
+    P.sheet('repeat');
+  };
+  P.acts.newRepeat = () => P.newRepeat({});
+  const rpData = () => (st.rp.id ? D.RECURRING.find((r) => r.id === st.rp.id) : st.rp.draft);
+  P.sheets.repeat = function () {
+    const r = rpData();
+    if (!r) return '';
+    const isNew = !st.rp.id;
+    const amount = isNew ? r.amount : (r.amount / 100).toFixed(2);
+    const cats = G.allCats(r.kind === 'income' ? 'income' : 'expense').map((id) => [id, L.cat(id).parent ? `${L.cat(L.cat(id).parent).name} · ${L.cat(id).name}` : L.cat(id).name]);
+    const ok = r.name.trim() && (isNew ? P.minorOf(r.amount) : r.amount);
+    return `<div class="lg-between"><h3 style="margin:0">${isNew ? 'New repeat' : 'Edit repeat'}</h3>${P.iconBtn('x', 'Close', 'closeSheet')}</div><div class="lg-stack" style="gap:12px;margin-top:8px">
+      ${isNew ? P.seg([{ label: 'Expense', id: 'expense', kind: 'expense', icon: 'down' }, { label: 'Income', id: 'income', kind: 'income', icon: 'up' }], r.kind, 'rpKind', 'Type') : ''}
+      ${P.field('Title', P.input('rpField', r.name, { arg: 'name', placeholder: 'For example Electricity', label: 'Title', focus: isNew }))}
+      <div class="p-grid2">${P.field(`Amount, ${D.acc(r.account).cur === 'EUR' ? 'EUR' : 'KM'}`, P.input('rpField', amount, { arg: 'amount', mode: 'decimal', placeholder: '0.00', label: 'Amount' }))}${P.field('Next on', P.input('rpField', r.date, { arg: 'date', type: 'date', label: 'Next on' }))}</div>
+      ${P.switch('Amount changes each time', !!r.varies, 'rpVaries')}
+      ${P.field('Repeats', P.seg(G.EVERY, r.every, 'rpEvery', 'Repeats'), P.everyLabel(r))}
+      ${P.field('Subcategory', P.select('rpField', r.subcat || r.cat, cats, { arg: 'cat', label: 'Subcategory' }))}
+      ${P.field('Account', P.select('rpField', r.account, D.ACCOUNTS.map((a) => [a.id, a.name]), { arg: 'account', label: 'Account' }))}
+      ${isNew ? P.btn('Save repeat', 'rpSave', null, { kind: 'primary', block: true, state: ok ? undefined : 'disabled' }) : `<div class="caption lg-faint">Changes save themselves. Past entries stay as they are.</div>${P.btn('Stop repeating', 'rpStop', r.id, { kind: 'danger', block: true })}`}</div>`;
+  };
+  function rpSet(patch) {
+    if (st.rp.id) G.editRepeat(st.rp.id, patch); else Object.assign(st.rp.draft, patch);
+  }
+  P.inputs.rpField = (v, key) => {
+    if (key === 'amount') { const m = P.minorOf(v); if (st.rp.id) { if (m > 0) rpSet({ amount: m }); } else rpSet({ amount: v }); P.queue(); return; }
+    if (key === 'cat') { const parent = G.parentOf(v); rpSet({ cat: parent, subcat: parent === v ? null : v }); P.render(); return; }
+    if (key === 'date' && !v) return;
+    rpSet({ [key]: v });
+    if (key === 'name') { P.queue(); return; }
+    P.render();
+  };
+  P.acts.rpEvery = (v) => { rpSet({ every: v }); P.render(); };
+  P.inputs.rpVaries = (v) => { rpSet({ varies: v }); P.render(); };
+  P.acts.rpKind = (k) => { Object.assign(st.rp.draft, { kind: k, cat: k === 'income' ? 'salary' : 'subscriptions', subcat: null }); P.render(); };
+  P.acts.rpSave = () => {
+    const d = st.rp.draft;
+    st.sheet = null;
+    P.withUndo(`${esc(d.name.trim())} repeats ${d.every.toLowerCase()}, next on ${G.shortDate(d.date)}`, () => G.addRepeat(Object.assign({}, d, { name: d.name.trim(), amount: P.minorOf(d.amount) })));
+  };
+  P.acts.rpStop = (id) => {
+    const r = D.RECURRING.find((x) => x.id === id);
+    st.sheet = null;
+    P.withUndo(`${esc(r.name)} no longer repeats. Past entries stay.`, () => G.stopRepeat(id));
+  };
+
+  // Transaction details: the repeat it belongs to, or one tap to make it repeat.
+  P.repeatLine = function (t) {
+    if (t.type !== 'expense' && t.type !== 'income') return '';
+    const r = t.rec && D.RECURRING.find((x) => x.id === t.rec);
+    if (r) return P.field('Repeats', `<button type="button" class="lg-pill" style="justify-content:flex-start" ${ro() ? 'disabled' : act('editRepeat', r.id)}>${L.icon('repeat', 16)}<span>${P.everyLabel(r)}, next ${G.shortDate(r.date)}</span></button>`);
+    if (ro()) return '';
+    return `<div>${P.btn('Repeat this', 'repeatFromTx', t.id, { small: true, kind: 'secondary', icon: 'repeat' })}</div>`;
+  };
+  P.acts.repeatFromTx = (id) => {
+    const t = P.byId(id);
+    P.newRepeat({ name: G.titleOf(t), amount: (t.amount / 100).toFixed(2), cat: t.cat, subcat: t.subcat, account: t.account, kind: t.type, every: 'Monthly', date: G.advance(t.date, 'Monthly') });
   };
 })(window.Ledgerly);

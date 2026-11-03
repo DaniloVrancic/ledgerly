@@ -9,7 +9,7 @@
   function reviewRow(t) {
     const chips = G.chips(t.account, t.type === 'income' ? 'income' : 'expense').slice(0, 4).map((id) => P.chip(id, { attrs: act('reviewChip', `${t.id}|${id}`) })).join('');
     const all = P.attr(ui.chipAll(), act('reviewAll', t.id));
-    return `<div class="lg-card lg-stack" data-key="rv${t.id}" style="gap:8px"><div class="lg-between" style="flex-wrap:nowrap;align-items:flex-start"><button type="button" class="p-clickable" style="flex:1 1 auto;min-width:0" ${act('openTxFull', t.id)}><span class="lg-row__title" style="display:block">${t.merchant ? esc(t.merchant) : 'No merchant'}</span><span class="lg-row__sub">${D.dayLabel(t.date)} · ${esc(D.acc(t.account).name)}</span></button><span class="lg-tx__amount">${P.txMoney(t)}</span></div>${ro() ? '' : `<div class="lg-chips">${chips}${all}</div>`}</div>`;
+    return `<div class="lg-card lg-stack" data-key="rv${t.id}" style="gap:8px"><div class="lg-between" style="flex-wrap:nowrap;align-items:flex-start"><button type="button" class="p-clickable" style="flex:1 1 auto;min-width:0" ${act('openTxFull', t.id)}><span class="lg-row__title" style="display:block">${esc(G.titleOf(t))}</span><span class="lg-row__sub">${D.dayLabel(t.date)} · ${esc(D.acc(t.account).name)}</span></button><span class="lg-tx__amount">${P.txMoney(t)}</span></div>${ro() ? '' : `<div class="lg-chips">${chips}${all}</div>`}</div>`;
   }
   P.reviewList = function () {
     const list = D.review();
@@ -29,7 +29,7 @@
   P.acts.reviewAll = (id) => P.sheet('pickCat', { id: Number(id), field: 'recat' });
 
   // ---- Monthly close: about two minutes, five short steps ----
-  const STEPS = ['Check account balances', 'Clear Needs Review', 'Confirm due bills', 'Read the summary', 'Add a note'];
+  const STEPS = ['Check account balances', 'Clear Needs Review', 'Mark due items paid', 'Read the summary', 'Add a note'];
   P.views.close = function () {
     const c = (st.closeRun = st.closeRun || { step: 0, checked: {}, note: '' });
     const p = G.current(); const prev = G.prevPeriod(p);
@@ -47,7 +47,7 @@
       body = `<p class="p-note">Give every entry a category so the summary is complete.</p>${P.reviewList()}`;
     } else if (c.step === 2) {
       const due = D.RECURRING.filter((r) => r.state === 'due');
-      body = due.length ? `<p class="p-note">Confirm what was really paid. Nothing posts by itself.</p><div class="lg-card lg-card--flush">${due.map((r) => `<div class="p-row-action" data-key="${r.id}"><span class="lg-row__body"><span class="lg-row__title">${esc(r.name)}</span><span class="lg-row__sub">${ui.recurring('due')}${G.shortDate(r.date)}</span></span><span class="p-amount-sm">${L.money(-r.amount, r.cur, { tone: 'negative' })}</span>${P.btn('Confirm', 'confirmDue', r.id, { small: true, kind: 'secondary' })}</div>`).join('')}</div>` : P.state('check', 'No bills waiting', 'Every due bill for this month is confirmed.', '');
+      body = due.length ? `<p class="p-note">Mark what you have paid. Nothing posts by itself.</p><div class="lg-card lg-card--flush">${due.map((r) => `<div class="p-row-action" data-key="${r.id}"><span class="lg-row__body"><span class="lg-row__title">${esc(r.name)}</span><span class="lg-row__sub">${ui.recurring('due')}${G.shortDate(r.date)}</span></span><span class="p-amount-sm">${L.money(-r.amount, r.cur, { tone: 'negative' })}</span>${P.btn('Mark paid', 'confirmDue', r.id, { small: true, kind: 'secondary' })}</div>`).join('')}</div>` : P.state('check', 'No bills waiting', 'Every due bill for this month is confirmed.', '');
     } else if (c.step === 3) {
       const s = G.periodStats(p);
       const over = D.budgets().filter((b) => b.state === 'over' && b.every === 'Monthly');

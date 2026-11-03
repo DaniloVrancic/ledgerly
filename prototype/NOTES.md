@@ -18,9 +18,22 @@ Each of the 22 interactions was driven through the real interface, with figures 
 
 **Not checked.** The published canvas was not opened on claude.ai, because the test browser is not signed in. Its files were run locally on the canvas's own runtime instead, and the prototype, stills and sitemap all rendered without console errors. Nothing was tried on a physical phone, so swipe and long-press were tested with synthetic touch events. Contrast was not re-measured for the additions below.
 
+## Titles and repeats
+
+An entry is a **title** and a **subcategory**. The merchant is optional, under More details.
+
+- Titles are remembered. Typing one offers titles used before, and choosing one brings back its usual subcategory and account. The six titles used most in the last 90 days sit at the top of the Add sheet, and with an amount typed one tap saves.
+- With no title typed, a chip saves the entry under the subcategory's name, so Add, digits, chip still takes two taps.
+- **Repeats** replace fixed recurring items. Any title can repeat daily, weekly, monthly or yearly, from More details on the Add sheet, from Repeat this in an entry's details, or from Recurring.
+- A repeat becomes Due on its date and waits. **Mark paid** posts it with Undo. When the amount changes each time, Ledgerly asks for this time's amount first. **Skip** moves it to the next date.
+- Typing the title of a repeat on the Add sheet counts as paying its next one, so you never end up with two Electricity repeats.
+- Tapping a repeat opens one form. Changes save themselves, and Stop repeating leaves past entries alone.
+- The forecast counts monthly and yearly repeats as bills. Daily and weekly repeats stay inside normal daily spending, so they are not counted twice. Daily repeats are left off the calendar grid.
+- Templates are gone. Frequent titles and repeats cover the same need with less to set up.
+
 ## What is interactive
 
-Everything in the 22 interactions, plus: templates, multi-select and bulk edit, refunds linked to their entry, Duplicate, the reconciled-period warning, month start, goals, new budgets, new recurring items, notes with links, category archive and delete, Start empty, hide amounts, accent colour. Changes last for the session.
+Everything in the 22 interactions, plus: frequent titles, repeats, multi-select and bulk edit, refunds linked to their entry, Duplicate, the reconciled-period warning, month start, goals, new budgets, new recurring items, notes with links, category archive and delete, Start empty, hide amounts, accent colour. Changes last for the session.
 
 ## What is simulated
 
