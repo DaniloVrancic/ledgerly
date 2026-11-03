@@ -29,6 +29,7 @@ dart run build_runner build
 | Add | An expense is Add, the amount, one category chip. Titles you typed before are suggested and bring back their subcategory and account, and the six most used titles sit at the top of the sheet. Under More details you can set a repeat, a merchant, your share of a shared payment, and a note. Later saves just the amount, to sort out afterwards. |
 | Home | Total balance, with every account one tap away, and how much of it is free to use after savings goals. It also shows repeats that are due with Mark paid, this month's income, spending, net and savings rate, where the money went, and recent entries. |
 | Entries | Grouped by day with each day's net. Search ignores Bosnian diacritics and also finds amounts. Filter by type, category or account, and swipe to delete with Undo. In an entry's details every field saves itself, and you can duplicate it, record a refund, record a repayment, or make it repeat. |
+| Calendar | On Entries, switch List to Calendar. Each day shows its net, a shade for how much was spent compared with the month's other days, and markers for income, paid and due repeats, planned repeats and high-spending days. A day opens its totals, top category, repeats and entries, and Add on this day. Year shows twelve months shaded day by day; a month opens its grid. |
 | Insights | Any month compared with the one before and with the usual level: income, spending, net, savings rate, spending per category with its share of income, income per source, a six-month chart, and a few plain observations. Every figure opens its entries. |
 | Repeats | Daily, weekly, monthly or yearly. A repeat turns Due on its date and waits until you mark it paid or skip it. When the amount varies, it asks for this time's amount. Typing a title that already repeats pays its next one. Shows the monthly and yearly cost of subscriptions. |
 | Budgets | A monthly or weekly limit for all spending, a category or a subcategory, in EUR. Monthly budgets follow your month start, and weeks run Monday to Sunday. Each shows what is spent and left, a marker for how far the period has gone, how much is safe to spend per day, and the last six periods. It warns at 80% and shows when it goes over. Home shows the budget bar on its category rows and the one budget that most needs attention. |
@@ -92,7 +93,7 @@ Each backup is a complete SQLite file. Uninstalling the app on Android removes i
 
 ## Not built yet
 
-- The calendar, the notebook, reports, monthly close, and bank statement CSV import.
+- The notebook, reports, monthly close, and bank statement CSV import.
 - Splitting one payment across several categories, and purchases in a third currency. The postings model supports both; only the screens are missing.
 - Export to an open `.ledgerly` file with a password, and choosing a backup folder outside the app on Android.
 - App lock, the home-screen widget, and a read-only desktop copy.

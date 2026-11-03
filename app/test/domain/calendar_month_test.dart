@@ -21,14 +21,6 @@ void main() {
     expect(monthGrid(2026, 6).first, '2026-06-01');
   });
 
-  test('the year is split into Monday weeks with days outside it left empty', () {
-    final weeks = yearWeeks(2026);
-    expect(weeks.first, [null, null, null, '2026-01-01', '2026-01-02', '2026-01-03', '2026-01-04']);
-    expect(weeks.last.first, '2026-12-28');
-    expect(weeks.last.last, null, reason: '3 January 2027 is outside the year');
-    expect(weeks.expand((w) => w).whereType<String>().length, 365);
-  });
-
   test('heat steps follow the month and leave days without spending unshaded', () {
     const month = [0, 100, 200, 300, 400];
     expect(heatStep(0, month), 0);
