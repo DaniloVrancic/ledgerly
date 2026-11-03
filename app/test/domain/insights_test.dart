@@ -8,7 +8,12 @@ void main() {
     spendingByCategory: [CategoryAmount('housing', 46000), CategoryAmount('food', 42000)],
     incomeByCategory: [CategoryAmount('salary', 200000)],
   );
-  PeriodTotals past(int food) => PeriodTotals(incomeMinor: 200000, spendingMinor: 100000, spendingByCategory: [CategoryAmount('food', food)], incomeByCategory: const []);
+  PeriodTotals past(int food) => PeriodTotals(
+    incomeMinor: 200000,
+    spendingMinor: 100000,
+    spendingByCategory: [CategoryAmount('food', food)],
+    incomeByCategory: const [],
+  );
 
   test('net and savings rate', () {
     expect(current.netMinor, 60000);
@@ -23,7 +28,11 @@ void main() {
   });
 
   test('observations carry their figures', () {
-    final list = insightsFor(current: current, previous: [past(30000), past(30000), past(30000)], nameOf: (id) => id == 'food' ? 'Food' : 'Housing');
+    final list = insightsFor(
+      current: current,
+      previous: [past(30000), past(30000), past(30000)],
+      nameOf: (id) => id == 'food' ? 'Food' : 'Housing',
+    );
     expect(list[0].text, 'You kept 30% of your income, €600.00.');
     expect(list[1].text, 'Housing took 23% of your income, €460.00.');
     expect(list[2].text, 'Food is €120.00 above its usual €300.00.');

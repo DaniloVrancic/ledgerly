@@ -1,6 +1,13 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Ledgerly works offline. Release builds can never reach the network, even through a
+         package that asks for it. Debug and profile builds keep it for hot reload. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove"/>
+
     <application
-        android:label="ledgerly"
+        android:label="Ledgerly"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

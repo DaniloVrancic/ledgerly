@@ -1,17 +1,98 @@
-# ledgerly
+# Ledgerly app
 
-Offline personal finance for one person.
+Ledgerly keeps track of one person's money, offline, on their own device. It records income and expenses in a few taps and shows where the money comes from, where it goes per category, and how that affects what is left. It also plans savings goals.
 
-## Getting Started
+It is built with Flutter for Android and Windows. Nothing needs a network connection. Release builds on Android cannot reach the network at all.
 
-This project is a starting point for a Flutter application.
+## Run it
 
-A few resources to get you started if this is your first Flutter project:
+The project needs Flutter 3.47.9 (Dart 3.13). The SDK must sit in a folder without spaces, because Flutter's native build hooks break on paths like `E:\Program Files\…`. On this machine it is installed at `E:\SDK\flutter-3.47.9`.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+cd app
+flutter pub get
+flutter run -d windows          # or an Android phone or emulator
+flutter test                    # all unit and widget tests
+flutter build apk --release --split-per-abi
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+After changing `lib/data/database/tables.dart`, regenerate the database code:
+
+```bash
+dart run build_runner build
+```
+
+## What it does
+
+| Area | What you can do |
+|---|---|
+| Add | An expense is Add, the amount, one category chip. Titles you typed before are suggested and bring back their subcategory and account, and the six most used titles sit at the top of the sheet. Under More details you can set a repeat, a merchant, your share of a shared payment, and a note. Later saves just the amount, to sort out afterwards. |
+| Home | Total balance, with every account one tap away, and how much of it is free to use after savings goals. It also shows repeats that are due with Mark paid, this month's income, spending, net and savings rate, where the money went, and recent entries. |
+| Entries | Grouped by day with each day's net. Search ignores Bosnian diacritics and also finds amounts. Filter by type, category or account, and swipe to delete with Undo. In an entry's details every field saves itself, and you can duplicate it, record a refund, record a repayment, or make it repeat. |
+| Insights | Any month compared with the one before and with the usual level: income, spending, net, savings rate, spending per category with its share of income, income per source, a six-month chart, and a few plain observations. Every figure opens its entries. |
+| Repeats | Daily, weekly, monthly or yearly. A repeat turns Due on its date and waits until you mark it paid or skip it. When the amount varies, it asks for this time's amount. Typing a title that already repeats pays its next one. Shows the monthly and yearly cost of subscriptions. |
+| Savings | A goal has a target and an optional date. Setting money aside keeps it in your account but marks it as not free to spend. Each goal shows what to set aside per month, whether you are on track, and when you will get there at your recent pace. Finishing a goal frees its money for the purchase. |
+| Categories | Add your own categories and subcategories: name, icon from the line set or your own picture, colour, and which accounts offer them. You can archive them, or delete them by moving their entries to another category. Also reachable from All on the Add sheet. |
+| Accounts | Balances, a balance check that saves any difference as Untracked, and a nudge when Cash has not been checked for two weeks. |
+| Backups | Every 3 days, the newest 3 kept, the newest replacing the oldest. Restore saves the current data as a safety copy first. |
+
+## The money rules
+
+They live in `lib/domain/postings.dart` and are covered by tests.
+
+- Money is stored as integer minor units, never as decimals. Each posting keeps its own currency and its EUR value, frozen when it is recorded. BAM is pegged at 1 EUR = 1.95583 KM.
+- Each entry becomes postings. Income and spending only ever come from postings with a category, so a transfer can never count.
+- Refunds go back on the expense's category and lower spending there. They are never income.
+- My share: only your part of a shared payment counts as spending. The rest is "Owed to me" until it is repaid, and the repayment is not income.
+- A balance check saves the difference on Untracked, which reports leave out.
+- Balances are never stored. They are always calculated from the postings.
+
+## How the code is organised
+
+```text
+lib/
+  main.dart               Opens the database, sets up backups, starts the app
+  app/                    Wiring: providers, navigation, the shell around the tabs, backups state
+  core/                   Small helpers with no app knowledge: money, days, months, ids, text search
+  domain/                 The rules, as plain Dart: postings, repeats, savings plans, title memory, insights
+  data/
+    database/             Drift tables, the database, default categories
+    repositories/         The only code that reads or writes the database
+    backup/               The 3-day, 3-file backup rotation
+  features/<area>/        One folder per area of the app, holding its screens and sheets
+  ui/                     The design system in Flutter: colours, type, icons, shared widgets
+test/
+  core/ domain/           Rules without a database
+  data/                   Repositories and backups against an in-memory database
+  ui/                     The real app driven through its screens
+```
+
+A screen reads data from a provider in `app/providers.dart` and changes it through a repository. Drift's live queries then update every screen that shows that data. Every change a person can make returns an Undo.
+
+The colours, type scale and icons come from `design-system/` at the root of the repository. `lib/ui/icons/icon_paths.dart` is generated from `design-system/ledgerly.js`.
+
+## Getting ready for sync
+
+Nothing syncs today, but the data is shaped so a server can be added later without moving anything:
+
+- Every record has a UUIDv7 id, so records made on two devices never collide.
+- Every record has `createdAt`, `updatedAt` and `deletedAt`. Deletes are soft, so a sync can send deletions too.
+- To add sync, write a service that sends rows whose `updatedAt` is newer than the last sync, receives the server's changes, and applies them through the repositories. The screens do not need to change.
+- Device-only preferences live in the `settings` table, which is not meant to sync.
+
+## Where the data lives
+
+| | Database | Backups |
+|---|---|---|
+| Android | The app's private folder | `Android/data/app.ledgerly.ledgerly/files/backups` |
+| Windows | `%APPDATA%\app.ledgerly\ledgerly\ledgerly.sqlite` | `Documents\Ledgerly\Backups` |
+
+Each backup is a complete SQLite file. Uninstalling the app on Android removes its backup folder too, so copy a backup somewhere else now and then.
+
+## Not built yet
+
+- Budgets, the calendar, the notebook, reports, monthly close, and bank statement CSV import.
+- Splitting one payment across several categories, and purchases in a third currency. The postings model supports both; only the screens are missing.
+- Export to an open `.ledgerly` file with a password, and choosing a backup folder outside the app on Android.
+- App lock, the home-screen widget, and a read-only desktop copy.
+- A custom app icon. It still uses the Flutter default.

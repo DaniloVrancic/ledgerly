@@ -72,21 +72,53 @@ class BackupService {
   /// Makes a backup now, then removes the oldest ones beyond [keep].
   Future<BackupFile> backUpNow() async {
     await folder.create(recursive: true);
+    _removeUnfinished();
     final created = clock.now();
     final target = File(p.join(folder.path, _fileName(created)));
     final temp = File('${target.path}.part');
-    if (temp.existsSync()) temp.deleteSync();
     await writeSnapshot(temp.path);
     if (!temp.existsSync() || temp.lengthSync() == 0) {
       throw const FileSystemException('The backup could not be written.');
     }
     if (target.existsSync()) target.deleteSync();
-    await temp.rename(target.path);
+    await _moveIntoPlace(temp, target);
     final all = list();
     for (final old in all.skip(keep)) {
       old.file.deleteSync();
     }
     return BackupFile(target, created);
+  }
+
+  /// Windows can hold a new file for a moment, for example while a virus scanner reads it.
+  /// The move is retried for about two seconds, then done as a copy.
+  static Future<void> _moveIntoPlace(File temp, File target) async {
+    for (var attempt = 0; attempt < 10; attempt++) {
+      try {
+        await temp.rename(target.path);
+        return;
+      } on FileSystemException {
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      }
+    }
+    await temp.copy(target.path);
+    try {
+      temp.deleteSync();
+    } on FileSystemException {
+      // Removed by the next backup.
+    }
+  }
+
+  /// Removes copies left behind by a backup that was interrupted.
+  void _removeUnfinished() {
+    for (final f in folder.listSync().whereType<File>()) {
+      if (p.basename(f.path).startsWith(_prefix) && f.path.endsWith('.part')) {
+        try {
+          f.deleteSync();
+        } on FileSystemException {
+          // Still in use; try again next time.
+        }
+      }
+    }
   }
 
   static String _fileName(DateTime t) {

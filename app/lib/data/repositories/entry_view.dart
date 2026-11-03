@@ -22,10 +22,14 @@ class EntryView {
   Posting get _first => _own.isEmpty ? postings.first : _own.first;
 
   /// The account the money left or arrived in. For a transfer, the account it left.
-  String get accountId => type == EntryType.transfer ? _own.firstWhere((p) => p.amountMinor < 0, orElse: () => _first).accountId : _first.accountId;
+  String get accountId => type == EntryType.transfer
+      ? _own.firstWhere((p) => p.amountMinor < 0, orElse: () => _first).accountId
+      : _first.accountId;
 
   /// The account a transfer arrived in.
-  String? get toAccountId => type == EntryType.transfer ? _own.firstWhere((p) => p.amountMinor > 0, orElse: () => _first).accountId : null;
+  String? get toAccountId => type == EntryType.transfer
+      ? _own.firstWhere((p) => p.amountMinor > 0, orElse: () => _first).accountId
+      : null;
 
   String get currency => _own.firstWhere((p) => p.accountId == accountId, orElse: () => _first).currency;
 
@@ -35,7 +39,9 @@ class EntryView {
   /// The amount on the account, signed: an expense is negative, income positive.
   /// A transfer shows what left the first account, as a positive number.
   int get amountMinor {
-    if (type == EntryType.transfer) return -_own.where((p) => p.accountId == accountId).fold(0, (s, p) => s + p.amountMinor);
+    if (type == EntryType.transfer) {
+      return -_own.where((p) => p.accountId == accountId).fold(0, (s, p) => s + p.amountMinor);
+    }
     return _own.where((p) => p.accountId == accountId).fold(0, (s, p) => s + p.amountMinor);
   }
 
@@ -48,7 +54,9 @@ class EntryView {
 
   /// The person's own part of a shared expense, when someone else owes the rest.
   int? get shareMinor {
-    final owed = postings.where((p) => p.accountId == SystemIds.owedToMe).fold(0, (s, p) => s + p.amountMinor);
+    final owed = postings
+        .where((p) => p.accountId == SystemIds.owedToMe)
+        .fold(0, (s, p) => s + p.amountMinor);
     if (owed <= 0) return null;
     return -postings.where((p) => p.categoryId != null).fold(0, (s, p) => s + p.amountMinor);
   }

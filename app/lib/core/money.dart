@@ -27,8 +27,7 @@ int fromBase(int eurMinor, String currency) {
 }
 
 /// Converts between the two account currencies at the fixed rate.
-int convert(int minor, String from, String to) =>
-    from == to ? minor : fromBase(toBase(minor, from), to);
+int convert(int minor, String from, String to) => from == to ? minor : fromBase(toBase(minor, from), to);
 
 final _digits = NumberFormat('#,##0.00', 'en_US');
 const _minus = '−';

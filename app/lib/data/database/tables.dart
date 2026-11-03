@@ -90,8 +90,8 @@ class Entries extends Table with SyncColumns {
 
   @override
   List<Set<Column<Object>>> get uniqueKeys => [
-        {repeatId, repeatDay},
-      ];
+    {repeatId, repeatDay},
+  ];
 }
 
 /// The money movements of an entry. Income and spending only ever come from postings with a

@@ -78,7 +78,10 @@ List<TitleMemory> rememberTitles(List<TitleUse> uses) {
 List<TitleMemory> suggestTitles(List<TitleMemory> memory, String query, String kind, {int limit = 4}) {
   final q = fold(query);
   if (q.isEmpty) return const [];
-  return memory.where((m) => m.kind == kind && fold(m.title).contains(q) && fold(m.title) != q).take(limit).toList();
+  return memory
+      .where((m) => m.kind == kind && fold(m.title).contains(q) && fold(m.title) != q)
+      .take(limit)
+      .toList();
 }
 
 /// The remembered title that is exactly what was typed, if any.

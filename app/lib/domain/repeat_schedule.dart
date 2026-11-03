@@ -14,11 +14,11 @@ enum Every {
 
   /// How many times it happens in an average month, for monthly totals.
   double get perMonth => switch (this) {
-        Every.daily => 365 / 12,
-        Every.weekly => 52 / 12,
-        Every.monthly => 1,
-        Every.yearly => 1 / 12,
-      };
+    Every.daily => 365 / 12,
+    Every.weekly => 52 / 12,
+    Every.monthly => 1,
+    Every.yearly => 1 / 12,
+  };
 
   static Every parse(String name) => Every.values.byName(name);
 }
@@ -81,5 +81,10 @@ String describeEvery(Every every, String nextDay, int anchorDay) {
 
 String ordinal(int n) {
   if (n % 100 >= 11 && n % 100 <= 13) return '${n}th';
-  return switch (n % 10) { 1 => '${n}st', 2 => '${n}nd', 3 => '${n}rd', _ => '${n}th' };
+  return switch (n % 10) {
+    1 => '${n}st',
+    2 => '${n}nd',
+    3 => '${n}rd',
+    _ => '${n}th',
+  };
 }

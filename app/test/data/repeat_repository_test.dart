@@ -9,7 +9,8 @@ void main() {
   setUp(() async => l = await TestLedger.create());
   tearDown(() => l.dispose());
 
-  Future<String> phoneBill({bool varies = false, Every every = Every.monthly, String next = '2026-10-25'}) => l.repeats.create(
+  Future<String> phoneBill({bool varies = false, Every every = Every.monthly, String next = '2026-10-25'}) =>
+      l.repeats.create(
         title: 'Phone bill',
         kind: 'expense',
         categoryId: 'mobile',

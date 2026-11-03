@@ -23,6 +23,8 @@ dependencies:
   intl: ^0.20.3
   # Bar and line charts on the Insights screen.
   fl_chart: ^1.3.0
+  # A person can use their own picture as a category icon. Uses the system photo picker.
+  image_picker: ^1.2.4
   # The design system's line icons are SVG paths.
   flutter_svg: ^2.2.4
 

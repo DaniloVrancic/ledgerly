@@ -9,7 +9,13 @@ void main() {
   tearDown(() => l.dispose());
 
   test('money set aside is no longer free, and closing frees it', () async {
-    final id = await l.goals.create(name: 'New laptop', icon: 'laptop', colorSlot: 3, targetMinor: 120000, targetDay: '2027-05-01');
+    final id = await l.goals.create(
+      name: 'New laptop',
+      icon: 'laptop',
+      colorSlot: 3,
+      targetMinor: 120000,
+      targetDay: '2027-05-01',
+    );
     await l.goals.addMoney(id, 30000, freeMinor: 100000);
     expect(await l.goals.watchSetAside().first, 30000);
     final goal = (await l.goals.watchGoals().first).single;

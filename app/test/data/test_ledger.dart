@@ -12,10 +12,10 @@ import 'package:ledgerly/data/repositories/repeat_repository.dart';
 
 class TestLedger {
   TestLedger._(this.db, this.clock)
-      : accounts = AccountRepository(db, clock),
-        categories = CategoryRepository(db, clock),
-        entries = EntryRepository(db, clock),
-        goals = GoalRepository(db, clock) {
+    : accounts = AccountRepository(db, clock),
+      categories = CategoryRepository(db, clock),
+      entries = EntryRepository(db, clock),
+      goals = GoalRepository(db, clock) {
     repeats = RepeatRepository(db, clock, entries);
   }
 
@@ -33,8 +33,18 @@ class TestLedger {
   static Future<TestLedger> create() async {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
     final ledger = TestLedger._(AppDatabase(NativeDatabase.memory()), FixedClock(DateTime(2026, 10, 29, 12)));
-    ledger.bank = await ledger.accounts.create(name: 'Main Bank', kind: AccountKind.bank, currency: 'EUR', openingMinor: 100000);
-    ledger.cash = await ledger.accounts.create(name: 'Cash', kind: AccountKind.cash, currency: 'BAM', openingMinor: 20000);
+    ledger.bank = await ledger.accounts.create(
+      name: 'Main Bank',
+      kind: AccountKind.bank,
+      currency: 'EUR',
+      openingMinor: 100000,
+    );
+    ledger.cash = await ledger.accounts.create(
+      name: 'Cash',
+      kind: AccountKind.cash,
+      currency: 'BAM',
+      openingMinor: 20000,
+    );
     return ledger;
   }
 

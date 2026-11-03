@@ -25,7 +25,13 @@ void main() {
   });
 
   test('occurrences in a range', () {
-    final days = occurrences(nextDay: '2026-11-05', every: Every.weekly, anchorDay: 5, start: '2026-11-01', end: '2026-11-30');
+    final days = occurrences(
+      nextDay: '2026-11-05',
+      every: Every.weekly,
+      anchorDay: 5,
+      start: '2026-11-01',
+      end: '2026-11-30',
+    );
     expect(days, ['2026-11-05', '2026-11-12', '2026-11-19', '2026-11-26']);
   });
 

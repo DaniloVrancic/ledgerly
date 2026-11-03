@@ -58,9 +58,22 @@ void main() {
       await service.backUpNow();
       clock.value = clock.value.add(const Duration(days: 3));
     }
-    final failing = BackupService(folder: service.folder, clock: clock, writeSnapshot: (_) async => throw const FileSystemException('disk full'));
+    final failing = BackupService(
+      folder: service.folder,
+      clock: clock,
+      writeSnapshot: (_) async => throw const FileSystemException('disk full'),
+    );
     await expectLater(failing.backUpNow(), throwsA(isA<FileSystemException>()));
     expect(service.list(), hasLength(3));
+  });
+
+  test('a backup left unfinished is cleaned up and never counted', () async {
+    service.folder.createSync(recursive: true);
+    File('${service.folder.path}/ledgerly-backup-20261020-090000.sqlite.part').writeAsStringSync('half');
+    expect(service.list(), isEmpty);
+    await service.backUpNow();
+    expect(service.list(), hasLength(1));
+    expect(service.folder.listSync().where((f) => f.path.endsWith('.part')), isEmpty);
   });
 
   test('other files in the folder are left alone', () async {

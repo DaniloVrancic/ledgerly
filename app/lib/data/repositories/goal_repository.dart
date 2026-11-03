@@ -22,11 +22,11 @@ class GoalWithMoves {
   int get savedMinor => moves.fold(0, (s, m) => s + m.amountMinor);
 
   GoalPlan planOn(String today) => planGoal(
-        targetMinor: goal.targetMinor,
-        targetDay: goal.targetDay,
-        moves: [for (final m in moves) GoalMoveInput(m.day, m.amountMinor)],
-        today: today,
-      );
+    targetMinor: goal.targetMinor,
+    targetDay: goal.targetDay,
+    moves: [for (final m in moves) GoalMoveInput(m.day, m.amountMinor)],
+    today: today,
+  );
 }
 
 class GoalRepository extends Repository {
@@ -34,12 +34,20 @@ class GoalRepository extends Repository {
 
   /// Every goal with its money moves, open goals first.
   Stream<List<GoalWithMoves>> watchGoals() {
-    final goals = (db.select(db.goals)..where((g) => g.deletedAt.isNull())..orderBy([(g) => OrderingTerm(expression: g.createdAt)])).watch();
+    final goals =
+        (db.select(db.goals)
+              ..where((g) => g.deletedAt.isNull())
+              ..orderBy([(g) => OrderingTerm(expression: g.createdAt)]))
+            .watch();
     return goals.asyncMap((list) async {
-      final moves = await (db.select(db.goalMoves)
-            ..where((m) => m.deletedAt.isNull())
-            ..orderBy([(m) => OrderingTerm(expression: m.day), (m) => OrderingTerm(expression: m.createdAt)]))
-          .get();
+      final moves =
+          await (db.select(db.goalMoves)
+                ..where((m) => m.deletedAt.isNull())
+                ..orderBy([
+                  (m) => OrderingTerm(expression: m.day),
+                  (m) => OrderingTerm(expression: m.createdAt),
+                ]))
+              .get();
       final out = [for (final g in list) GoalWithMoves(g, moves.where((m) => m.goalId == g.id).toList())];
       out.sort((a, b) => (a.isOpen ? 0 : 1).compareTo(b.isOpen ? 0 : 1));
       return out;
@@ -56,36 +64,60 @@ class GoalRepository extends Repository {
       .watch()
       .map((rows) => rows.first.read<int>('total'));
 
-  Future<String> create({required String name, required String icon, required int colorSlot, required int targetMinor, String? targetDay, String? accountId}) async {
+  Future<String> create({
+    required String name,
+    required String icon,
+    required int colorSlot,
+    required int targetMinor,
+    String? targetDay,
+    String? accountId,
+  }) async {
     if (name.trim().isEmpty) throw RuleException('Give the goal a name.');
     if (targetMinor <= 0) throw RuleException('Enter a target above zero.');
     final id = newId();
-    await db.into(db.goals).insert(GoalsCompanion.insert(
-          id: id,
-          name: name.trim(),
-          icon: icon,
-          colorSlot: Value(colorSlot),
-          targetMinor: targetMinor,
-          targetDay: Value(targetDay),
-          accountId: Value(accountId),
-          createdAt: now,
-          updatedAt: now,
-        ));
+    await db
+        .into(db.goals)
+        .insert(
+          GoalsCompanion.insert(
+            id: id,
+            name: name.trim(),
+            icon: icon,
+            colorSlot: Value(colorSlot),
+            targetMinor: targetMinor,
+            targetDay: Value(targetDay),
+            accountId: Value(accountId),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
     return id;
   }
 
-  Future<void> update(String id, {String? name, String? icon, int? colorSlot, int? targetMinor, String? targetDay, bool clearTargetDay = false, String? accountId}) {
+  Future<void> update(
+    String id, {
+    String? name,
+    String? icon,
+    int? colorSlot,
+    int? targetMinor,
+    String? targetDay,
+    bool clearTargetDay = false,
+    String? accountId,
+  }) {
     if (name != null && name.trim().isEmpty) throw RuleException('Give the goal a name.');
     if (targetMinor != null && targetMinor <= 0) throw RuleException('Enter a target above zero.');
-    return (db.update(db.goals)..where((g) => g.id.equals(id))).write(GoalsCompanion(
-      name: name == null ? const Value.absent() : Value(name.trim()),
-      icon: icon == null ? const Value.absent() : Value(icon),
-      colorSlot: colorSlot == null ? const Value.absent() : Value(colorSlot),
-      targetMinor: targetMinor == null ? const Value.absent() : Value(targetMinor),
-      targetDay: clearTargetDay ? const Value(null) : (targetDay == null ? const Value.absent() : Value(targetDay)),
-      accountId: accountId == null ? const Value.absent() : Value(accountId),
-      updatedAt: Value(now),
-    ));
+    return (db.update(db.goals)..where((g) => g.id.equals(id))).write(
+      GoalsCompanion(
+        name: name == null ? const Value.absent() : Value(name.trim()),
+        icon: icon == null ? const Value.absent() : Value(icon),
+        colorSlot: colorSlot == null ? const Value.absent() : Value(colorSlot),
+        targetMinor: targetMinor == null ? const Value.absent() : Value(targetMinor),
+        targetDay: clearTargetDay
+            ? const Value(null)
+            : (targetDay == null ? const Value.absent() : Value(targetDay)),
+        accountId: accountId == null ? const Value.absent() : Value(accountId),
+        updatedAt: Value(now),
+      ),
+    );
   }
 
   /// Sets money aside for a goal. [freeMinor] is what is free to use now; more cannot be set aside.
@@ -109,33 +141,50 @@ class GoalRepository extends Repository {
     return () => _setClosed(goalId, null);
   }
 
+  /// Opens a finished goal again. Its money counts as set aside once more.
+  Future<Undo> reopen(String goalId) async {
+    await _setClosed(goalId, null);
+    return () => _setClosed(goalId, now);
+  }
+
   Future<Undo> delete(String goalId) async {
-    await (db.update(db.goals)..where((g) => g.id.equals(goalId))).write(GoalsCompanion(deletedAt: Value(now), updatedAt: Value(now)));
-    return () => (db.update(db.goals)..where((g) => g.id.equals(goalId))).write(GoalsCompanion(deletedAt: const Value(null), updatedAt: Value(now)));
+    await (db.update(
+      db.goals,
+    )..where((g) => g.id.equals(goalId))).write(GoalsCompanion(deletedAt: Value(now), updatedAt: Value(now)));
+    return () => (db.update(db.goals)..where((g) => g.id.equals(goalId))).write(
+      GoalsCompanion(deletedAt: const Value(null), updatedAt: Value(now)),
+    );
   }
 
   Future<Undo> _move(String goalId, int amountMinor, String? note) async {
     final id = newId();
-    await db.into(db.goalMoves).insert(GoalMovesCompanion.insert(
-          id: id,
-          goalId: goalId,
-          day: today,
-          amountMinor: amountMinor,
-          note: Value(note),
-          createdAt: now,
-          updatedAt: now,
-        ));
+    await db
+        .into(db.goalMoves)
+        .insert(
+          GoalMovesCompanion.insert(
+            id: id,
+            goalId: goalId,
+            day: today,
+            amountMinor: amountMinor,
+            note: Value(note),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
     return () => (db.delete(db.goalMoves)..where((m) => m.id.equals(id))).go();
   }
 
   Future<int> _saved(String goalId) async {
-    final row = await db.customSelect(
-      'SELECT COALESCE(SUM(amount_minor), 0) AS s FROM goal_moves WHERE goal_id = ? AND deleted_at IS NULL',
-      variables: [Variable.withString(goalId)],
-    ).getSingle();
+    final row = await db
+        .customSelect(
+          'SELECT COALESCE(SUM(amount_minor), 0) AS s FROM goal_moves WHERE goal_id = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(goalId)],
+        )
+        .getSingle();
     return row.read<int>('s');
   }
 
-  Future<void> _setClosed(String goalId, DateTime? when) =>
-      (db.update(db.goals)..where((g) => g.id.equals(goalId))).write(GoalsCompanion(closedAt: Value(when), updatedAt: Value(now)));
+  Future<void> _setClosed(String goalId, DateTime? when) => (db.update(
+    db.goals,
+  )..where((g) => g.id.equals(goalId))).write(GoalsCompanion(closedAt: Value(when), updatedAt: Value(now)));
 }

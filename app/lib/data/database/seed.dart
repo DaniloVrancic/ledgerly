@@ -9,18 +9,68 @@ import '../../domain/system_ids.dart';
 typedef CategoryDefault = (String id, String name, String icon, int color);
 
 const List<(CategoryDefault, List<(String, String, String)>)> defaultExpenseCategories = [
-  (('housing', 'Housing', 'home', 1), [('rent', 'Rent', 'home'), ('repairs', 'Repairs', 'wrench'), ('furnishing', 'Furnishing', 'store')]),
-  (('food', 'Food', 'basket', 2), [('groceries', 'Groceries', 'basket'), ('dining', 'Dining out', 'fork'), ('coffee', 'Coffee', 'coffee')]),
-  (('transport', 'Transportation', 'bus', 3), [('fuel', 'Fuel', 'fuel'), ('transit', 'Public transport', 'bus'), ('parking', 'Parking', 'car'), ('carservice', 'Car service', 'wrench')]),
-  (('shopping', 'Shopping', 'bag', 4), [('clothes', 'Clothes', 'shirt'), ('household', 'Household', 'home'), ('electronics', 'Electronics', 'phone')]),
-  (('health', 'Health', 'pulse', 5), [('pharmacy', 'Pharmacy', 'pulse'), ('doctor', 'Doctor', 'heart'), ('fitness', 'Fitness', 'dumbbell')]),
-  (('entertainment', 'Entertainment', 'ticket', 6), [('cinema', 'Cinema', 'ticket'), ('events', 'Events', 'music'), ('games', 'Games', 'game'), ('books', 'Books', 'book')]),
-  (('bills', 'Bills', 'receipt', 7), [('electricity', 'Electricity', 'bolt'), ('utilities', 'Utilities', 'receipt'), ('internet', 'Internet', 'bolt'), ('mobile', 'Phone', 'phone')]),
+  (
+    ('housing', 'Housing', 'home', 1),
+    [('rent', 'Rent', 'home'), ('repairs', 'Repairs', 'wrench'), ('furnishing', 'Furnishing', 'store')],
+  ),
+  (
+    ('food', 'Food', 'basket', 2),
+    [('groceries', 'Groceries', 'basket'), ('dining', 'Dining out', 'fork'), ('coffee', 'Coffee', 'coffee')],
+  ),
+  (
+    ('transport', 'Transportation', 'bus', 3),
+    [
+      ('fuel', 'Fuel', 'fuel'),
+      ('transit', 'Public transport', 'bus'),
+      ('parking', 'Parking', 'car'),
+      ('carservice', 'Car service', 'wrench'),
+    ],
+  ),
+  (
+    ('shopping', 'Shopping', 'bag', 4),
+    [
+      ('clothes', 'Clothes', 'shirt'),
+      ('household', 'Household', 'home'),
+      ('electronics', 'Electronics', 'phone'),
+    ],
+  ),
+  (
+    ('health', 'Health', 'pulse', 5),
+    [('pharmacy', 'Pharmacy', 'pulse'), ('doctor', 'Doctor', 'heart'), ('fitness', 'Fitness', 'dumbbell')],
+  ),
+  (
+    ('entertainment', 'Entertainment', 'ticket', 6),
+    [
+      ('cinema', 'Cinema', 'ticket'),
+      ('events', 'Events', 'music'),
+      ('games', 'Games', 'game'),
+      ('books', 'Books', 'book'),
+    ],
+  ),
+  (
+    ('bills', 'Bills', 'receipt', 7),
+    [
+      ('electricity', 'Electricity', 'bolt'),
+      ('utilities', 'Utilities', 'receipt'),
+      ('internet', 'Internet', 'bolt'),
+      ('mobile', 'Phone', 'phone'),
+    ],
+  ),
   (('travel', 'Travel', 'plane', 8), [('stays', 'Stays', 'home'), ('trips', 'Trips', 'plane')]),
   (('education', 'Education', 'book', 9), [('courses', 'Courses', 'book')]),
-  (('personal', 'Personal Care', 'sparkle', 10), [('haircut', 'Haircut', 'sparkle'), ('cosmetics', 'Cosmetics', 'leaf')]),
+  (
+    ('personal', 'Personal Care', 'sparkle', 10),
+    [('haircut', 'Haircut', 'sparkle'), ('cosmetics', 'Cosmetics', 'leaf')],
+  ),
   (('gifts', 'Gifts', 'gift', 11), [('family', 'Family', 'gift'), ('friends', 'Friends', 'heart')]),
-  (('subscriptions', 'Subscriptions', 'repeat', 12), [('streaming', 'Streaming', 'ticket'), ('musicapp', 'Music', 'music'), ('software', 'Software', 'laptop')]),
+  (
+    ('subscriptions', 'Subscriptions', 'repeat', 12),
+    [
+      ('streaming', 'Streaming', 'ticket'),
+      ('musicapp', 'Music', 'music'),
+      ('software', 'Software', 'laptop'),
+    ],
+  ),
   (('other', 'Other', 'dots', 0), []),
 ];
 
@@ -68,7 +118,14 @@ Future<void> seedDefaults(AppDatabase db) async {
     // Holds the part of a shared payment that someone else will pay back.
     b.insert(
       db.accounts,
-      AccountsCompanion.insert(id: SystemIds.owedToMe, name: 'Owed to me', kind: 'system', currency: 'EUR', createdAt: now, updatedAt: now),
+      AccountsCompanion.insert(
+        id: SystemIds.owedToMe,
+        name: 'Owed to me',
+        kind: 'system',
+        currency: 'EUR',
+        createdAt: now,
+        updatedAt: now,
+      ),
     );
   });
 }

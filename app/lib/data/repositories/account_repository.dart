@@ -54,7 +54,9 @@ class AccountRepository extends Repository {
         readsFrom: {db.accounts, db.postings, db.entries},
       )
       .watch()
-      .map((rows) => [for (final r in rows) AccountWithBalance(db.accounts.map(r.data), r.read<int>('balance'))]);
+      .map(
+        (rows) => [for (final r in rows) AccountWithBalance(db.accounts.map(r.data), r.read<int>('balance'))],
+      );
 
   /// What other people still owe from shared payments, in EUR.
   Stream<int> watchOwedToMe() => db
@@ -68,37 +70,56 @@ class AccountRepository extends Repository {
       .map((rows) => rows.first.read<int>('owed'));
 
   Future<int> balanceOf(String accountId) async {
-    final row = await db.customSelect('$_balanceSql AND a.id = ?', variables: [Variable.withString(accountId)], readsFrom: {db.accounts, db.postings}).getSingle();
+    final row = await db
+        .customSelect(
+          '$_balanceSql AND a.id = ?',
+          variables: [Variable.withString(accountId)],
+          readsFrom: {db.accounts, db.postings},
+        )
+        .getSingle();
     return row.read<int>('balance');
   }
 
-  Future<Account?> find(String id) => (db.select(db.accounts)..where((a) => a.id.equals(id))).getSingleOrNull();
+  Future<Account?> find(String id) =>
+      (db.select(db.accounts)..where((a) => a.id.equals(id))).getSingleOrNull();
 
-  Future<String> create({required String name, required AccountKind kind, required String currency, int openingMinor = 0}) async {
+  Future<String> create({
+    required String name,
+    required AccountKind kind,
+    required String currency,
+    int openingMinor = 0,
+  }) async {
     final id = newId();
     final count = await db.accounts.count().getSingle();
-    await db.into(db.accounts).insert(AccountsCompanion.insert(
-          id: id,
-          name: name.trim(),
-          kind: kind.name,
-          currency: currency,
-          openingMinor: Value(openingMinor),
-          sortOrder: Value(count),
-          checkedOn: Value(today),
-          createdAt: now,
-          updatedAt: now,
-        ));
+    await db
+        .into(db.accounts)
+        .insert(
+          AccountsCompanion.insert(
+            id: id,
+            name: name.trim(),
+            kind: kind.name,
+            currency: currency,
+            openingMinor: Value(openingMinor),
+            sortOrder: Value(count),
+            checkedOn: Value(today),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
     return id;
   }
 
   Future<void> update(String id, {String? name, AccountKind? kind, bool? archived}) =>
-      (db.update(db.accounts)..where((a) => a.id.equals(id))).write(AccountsCompanion(
-        name: name == null ? const Value.absent() : Value(name.trim()),
-        kind: kind == null ? const Value.absent() : Value(kind.name),
-        archived: archived == null ? const Value.absent() : Value(archived),
-        updatedAt: Value(now),
-      ));
+      (db.update(db.accounts)..where((a) => a.id.equals(id))).write(
+        AccountsCompanion(
+          name: name == null ? const Value.absent() : Value(name.trim()),
+          kind: kind == null ? const Value.absent() : Value(kind.name),
+          archived: archived == null ? const Value.absent() : Value(archived),
+          updatedAt: Value(now),
+        ),
+      );
 
-  Future<void> markChecked(String id) =>
-      (db.update(db.accounts)..where((a) => a.id.equals(id))).write(AccountsCompanion(checkedOn: Value(today), updatedAt: Value(now)));
+  Future<void> markChecked(String id) => (db.update(
+    db.accounts,
+  )..where((a) => a.id.equals(id))).write(AccountsCompanion(checkedOn: Value(today), updatedAt: Value(now)));
 }

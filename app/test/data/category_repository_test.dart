@@ -16,20 +16,43 @@ void main() {
   });
 
   test('custom categories and subcategories, with Bosnian characters', () async {
-    final id = await l.categories.create(name: 'Čišćenje', kind: CategoryKind.expense, icon: 'sparkle', colorSlot: 3);
-    final sub = await l.categories.create(name: 'Prozori', kind: CategoryKind.expense, parentId: id, icon: 'home', colorSlot: 3);
+    final id = await l.categories.create(
+      name: 'Čišćenje',
+      kind: CategoryKind.expense,
+      icon: 'sparkle',
+      colorSlot: 3,
+    );
+    final sub = await l.categories.create(
+      name: 'Prozori',
+      kind: CategoryKind.expense,
+      parentId: id,
+      icon: 'home',
+      colorSlot: 3,
+    );
     final all = await l.categories.all();
     expect(all.firstWhere((c) => c.id == id).isCustom, isTrue);
     expect(all.firstWhere((c) => c.id == sub).parentId, id);
   });
 
   test('names are required and short', () async {
-    expect(() => l.categories.create(name: '  ', kind: CategoryKind.expense, icon: 'dots', colorSlot: 0), throwsA(isA<CategoryException>()));
-    expect(() => l.categories.create(name: 'x' * 33, kind: CategoryKind.expense, icon: 'dots', colorSlot: 0), throwsA(isA<CategoryException>()));
+    expect(
+      () => l.categories.create(name: '  ', kind: CategoryKind.expense, icon: 'dots', colorSlot: 0),
+      throwsA(isA<CategoryException>()),
+    );
+    expect(
+      () => l.categories.create(name: 'x' * 33, kind: CategoryKind.expense, icon: 'dots', colorSlot: 0),
+      throwsA(isA<CategoryException>()),
+    );
   });
 
   test('a category can be limited to accounts, and the limit can change', () async {
-    final id = await l.categories.create(name: 'Pets', kind: CategoryKind.expense, icon: 'paw', colorSlot: 9, accountIds: {l.cash});
+    final id = await l.categories.create(
+      name: 'Pets',
+      kind: CategoryKind.expense,
+      icon: 'paw',
+      colorSlot: 9,
+      accountIds: {l.cash},
+    );
     expect((await l.categories.watchAccountLimits().first)[id], {l.cash});
     await l.categories.setAccounts(id, {});
     expect((await l.categories.watchAccountLimits().first)[id], isNull);
@@ -57,9 +80,17 @@ void main() {
   });
 
   test('an unused category can be deleted, and the app keeps its own', () async {
-    final id = await l.categories.create(name: 'Hobby', kind: CategoryKind.expense, icon: 'game', colorSlot: 6);
+    final id = await l.categories.create(
+      name: 'Hobby',
+      kind: CategoryKind.expense,
+      icon: 'game',
+      colorSlot: 6,
+    );
     await l.categories.deleteAndMove(id);
     expect((await l.categories.all()).any((c) => c.id == id), isFalse);
-    expect(() => l.categories.deleteAndMove('uncategorised', moveTo: 'other'), throwsA(isA<CategoryException>()));
+    expect(
+      () => l.categories.deleteAndMove('uncategorised', moveTo: 'other'),
+      throwsA(isA<CategoryException>()),
+    );
   });
 }

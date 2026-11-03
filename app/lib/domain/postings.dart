@@ -60,7 +60,15 @@ List<PostingDraft> entryPostings({
   final base = toBase(amountMinor, currency);
   if (shareMinor == null || shareMinor == amountMinor) {
     final sign = isExpense ? -1 : 1;
-    return [PostingDraft(accountId: accountId, categoryId: categoryId, amountMinor: sign * amountMinor, currency: currency, baseMinor: sign * base)];
+    return [
+      PostingDraft(
+        accountId: accountId,
+        categoryId: categoryId,
+        amountMinor: sign * amountMinor,
+        currency: currency,
+        baseMinor: sign * base,
+      ),
+    ];
   }
   if (!isExpense) throw RuleException('My share applies to an expense.');
   if (shareMinor <= 0 || shareMinor > amountMinor) {
@@ -70,9 +78,27 @@ List<PostingDraft> entryPostings({
   final shareBase = (base * shareMinor / amountMinor).round();
   final owedBase = base - shareBase;
   return [
-    PostingDraft(accountId: accountId, categoryId: categoryId, amountMinor: -shareMinor, currency: currency, baseMinor: -shareBase),
-    PostingDraft(accountId: accountId, categoryId: null, amountMinor: -owed, currency: currency, baseMinor: -owedBase),
-    PostingDraft(accountId: SystemIds.owedToMe, categoryId: null, amountMinor: owed, currency: currency, baseMinor: owedBase),
+    PostingDraft(
+      accountId: accountId,
+      categoryId: categoryId,
+      amountMinor: -shareMinor,
+      currency: currency,
+      baseMinor: -shareBase,
+    ),
+    PostingDraft(
+      accountId: accountId,
+      categoryId: null,
+      amountMinor: -owed,
+      currency: currency,
+      baseMinor: -owedBase,
+    ),
+    PostingDraft(
+      accountId: SystemIds.owedToMe,
+      categoryId: null,
+      amountMinor: owed,
+      currency: currency,
+      baseMinor: owedBase,
+    ),
   ];
 }
 
@@ -88,29 +114,74 @@ List<PostingDraft> transferPostings({
   if (fromAccountId == toAccountId) throw RuleException('Choose two different accounts.');
   final base = toBase(amountMinor, fromCurrency);
   return [
-    PostingDraft(accountId: fromAccountId, categoryId: null, amountMinor: -amountMinor, currency: fromCurrency, baseMinor: -base),
-    PostingDraft(accountId: toAccountId, categoryId: null, amountMinor: convert(amountMinor, fromCurrency, toCurrency), currency: toCurrency, baseMinor: base),
+    PostingDraft(
+      accountId: fromAccountId,
+      categoryId: null,
+      amountMinor: -amountMinor,
+      currency: fromCurrency,
+      baseMinor: -base,
+    ),
+    PostingDraft(
+      accountId: toAccountId,
+      categoryId: null,
+      amountMinor: convert(amountMinor, fromCurrency, toCurrency),
+      currency: toCurrency,
+      baseMinor: base,
+    ),
   ];
 }
 
 /// Money back for an expense. It goes on the expense's category, so it lowers spending there.
-List<PostingDraft> refundPostings({required String accountId, required String currency, required int amountMinor, required String categoryId}) {
+List<PostingDraft> refundPostings({
+  required String accountId,
+  required String currency,
+  required int amountMinor,
+  required String categoryId,
+}) {
   _requirePositive(amountMinor);
-  return [PostingDraft(accountId: accountId, categoryId: categoryId, amountMinor: amountMinor, currency: currency, baseMinor: toBase(amountMinor, currency))];
+  return [
+    PostingDraft(
+      accountId: accountId,
+      categoryId: categoryId,
+      amountMinor: amountMinor,
+      currency: currency,
+      baseMinor: toBase(amountMinor, currency),
+    ),
+  ];
 }
 
 /// Someone paid back their part of a shared payment. Clears "Owed to me" and is never income.
-List<PostingDraft> repaymentPostings({required String accountId, required String currency, required int amountMinor}) {
+List<PostingDraft> repaymentPostings({
+  required String accountId,
+  required String currency,
+  required int amountMinor,
+}) {
   _requirePositive(amountMinor);
   final base = toBase(amountMinor, currency);
   return [
-    PostingDraft(accountId: SystemIds.owedToMe, categoryId: null, amountMinor: -amountMinor, currency: currency, baseMinor: -base),
-    PostingDraft(accountId: accountId, categoryId: null, amountMinor: amountMinor, currency: currency, baseMinor: base),
+    PostingDraft(
+      accountId: SystemIds.owedToMe,
+      categoryId: null,
+      amountMinor: -amountMinor,
+      currency: currency,
+      baseMinor: -base,
+    ),
+    PostingDraft(
+      accountId: accountId,
+      categoryId: null,
+      amountMinor: amountMinor,
+      currency: currency,
+      baseMinor: base,
+    ),
   ];
 }
 
 /// A balance check found [differenceMinor] more (or less, when negative) than the app had.
-List<PostingDraft> adjustmentPostings({required String accountId, required String currency, required int differenceMinor}) {
+List<PostingDraft> adjustmentPostings({
+  required String accountId,
+  required String currency,
+  required int differenceMinor,
+}) {
   if (differenceMinor == 0) return const [];
   return [
     PostingDraft(

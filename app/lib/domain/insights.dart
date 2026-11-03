@@ -13,9 +13,19 @@ class CategoryAmount {
 
 /// Income and spending for one period, in EUR.
 class PeriodTotals {
-  const PeriodTotals({required this.incomeMinor, required this.spendingMinor, required this.spendingByCategory, required this.incomeByCategory});
+  const PeriodTotals({
+    required this.incomeMinor,
+    required this.spendingMinor,
+    required this.spendingByCategory,
+    required this.incomeByCategory,
+  });
 
-  static const empty = PeriodTotals(incomeMinor: 0, spendingMinor: 0, spendingByCategory: [], incomeByCategory: []);
+  static const empty = PeriodTotals(
+    incomeMinor: 0,
+    spendingMinor: 0,
+    spendingByCategory: [],
+    incomeByCategory: [],
+  );
 
   final int incomeMinor;
 
@@ -40,7 +50,8 @@ class PeriodTotals {
 int? percentChange(int now, int before) => before == 0 ? null : (((now - before) / before) * 100).round();
 
 /// The share of income a category took, from 0 to 1. Null without income.
-double? shareOfIncome(int amountMinor, int incomeMinor) => incomeMinor == 0 ? null : amountMinor / incomeMinor;
+double? shareOfIncome(int amountMinor, int incomeMinor) =>
+    incomeMinor == 0 ? null : amountMinor / incomeMinor;
 
 class Insight {
   const Insight(this.text, {this.categoryId});
@@ -50,21 +61,34 @@ class Insight {
 
 /// A few observations, each with the figures it relies on. [previous] are earlier periods,
 /// most recent last; up to three are used for the usual level.
-List<Insight> insightsFor({required PeriodTotals current, required List<PeriodTotals> previous, required String Function(String id) nameOf}) {
+List<Insight> insightsFor({
+  required PeriodTotals current,
+  required List<PeriodTotals> previous,
+  required String Function(String id) nameOf,
+}) {
   final out = <Insight>[];
   final recent = previous.length > 3 ? previous.sublist(previous.length - 3) : previous;
 
   if (current.incomeMinor > 0) {
     final rate = current.savingsRate!;
-    out.add(Insight(rate >= 0
-        ? 'You kept ${(rate * 100).round()}% of your income, ${formatMoney(current.netMinor, 'EUR')}.'
-        : 'You spent ${formatMoney(-current.netMinor, 'EUR')} more than you earned.'));
+    out.add(
+      Insight(
+        rate >= 0
+            ? 'You kept ${(rate * 100).round()}% of your income, ${formatMoney(current.netMinor, 'EUR')}.'
+            : 'You spent ${formatMoney(-current.netMinor, 'EUR')} more than you earned.',
+      ),
+    );
   }
 
   if (current.spendingByCategory.isNotEmpty && current.incomeMinor > 0) {
     final top = current.spendingByCategory.first;
     final share = shareOfIncome(top.amountMinor, current.incomeMinor)!;
-    out.add(Insight('${nameOf(top.categoryId)} took ${(share * 100).round()}% of your income, ${formatMoney(top.amountMinor, 'EUR')}.', categoryId: top.categoryId));
+    out.add(
+      Insight(
+        '${nameOf(top.categoryId)} took ${(share * 100).round()}% of your income, ${formatMoney(top.amountMinor, 'EUR')}.',
+        categoryId: top.categoryId,
+      ),
+    );
   }
 
   if (recent.isNotEmpty) {

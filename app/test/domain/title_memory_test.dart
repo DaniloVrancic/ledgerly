@@ -1,8 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerly/domain/title_memory.dart';
 
-TitleUse use(String title, String cat, String acc, int n, int recent) =>
-    TitleUse(title: title, kind: 'expense', categoryId: cat, accountId: acc, count: n, recentCount: recent, lastAmountMinor: 100);
+TitleUse use(String title, String cat, String acc, int n, int recent) => TitleUse(
+  title: title,
+  kind: 'expense',
+  categoryId: cat,
+  accountId: acc,
+  count: n,
+  recentCount: recent,
+  lastAmountMinor: 100,
+);
 
 void main() {
   final memory = rememberTitles([
