@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/backup_controller.dart';
+import '../../app/lock_controller.dart';
 import '../../app/providers.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../domain/repeat_schedule.dart';
@@ -15,6 +16,7 @@ import '../data/import_screen.dart';
 import '../statement_import/statement_import_screen.dart';
 import 'backup_status.dart';
 import 'backups_screen.dart';
+import 'security_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -100,6 +102,16 @@ class SettingsScreen extends ConsumerWidget {
                   style: context.text.caption,
                 ),
               ],
+            ),
+          ),
+          const SectionHeader('Security'),
+          Card(
+            child: ListTile(
+              leading: const LedgerIcon('lock'),
+              title: const Text('App lock'),
+              subtitle: Text(ref.watch(lockControllerProvider).enabled ? 'On' : 'Off'),
+              trailing: const LedgerIcon('chevron'),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SecurityScreen())),
             ),
           ),
           const SectionHeader('Your data'),

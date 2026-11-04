@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/lock/lock_screen.dart';
 import '../ui/theme/app_theme.dart';
 import 'app_shell.dart';
 import 'navigation.dart';
@@ -27,6 +28,8 @@ class LedgerlyApp extends ConsumerWidget {
       theme: buildTheme(Brightness.light, accent),
       darkTheme: buildTheme(Brightness.dark, accent),
       themeMode: mode,
+      // The lock covers everything, sheets and dialogs included.
+      builder: (context, child) => LockGate(child: child ?? const SizedBox()),
       home: const AppShell(),
     );
   }

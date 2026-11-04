@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'app/app.dart';
 import 'app/backup_controller.dart';
 import 'app/files.dart';
+import 'app/lock_controller.dart';
 import 'app/navigation.dart';
 import 'app/providers.dart';
 import 'core/clock.dart';
@@ -20,6 +21,7 @@ import 'data/database/app_database.dart';
 import 'data/database/connection.dart';
 import 'data/export/ledgerly_file.dart';
 import 'data/repositories/settings_repository.dart';
+import 'data/security/lock_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +29,10 @@ Future<void> main() async {
   final file = await databaseFile();
   final folder = await backupFolder();
   final work = Directory(p.join((await getTemporaryDirectory()).path, 'ledgerly-work'));
-  final images = Directory(p.join((await getApplicationSupportDirectory()).path, 'category_images'));
+  final support = (await getApplicationSupportDirectory()).path;
+  final images = Directory(p.join(support, 'category_images'));
+  // Outside the database, so a restore or an import never changes the lock.
+  final lockFile = File(p.join(support, 'app_lock.json'));
   final db = openDatabase(file);
   // Backups go to the folder the person chose, or the default one when it is out of reach.
   final chosen = await SettingsRepository(db, clock).read(SettingKeys.backupFolder);
@@ -40,6 +45,7 @@ Future<void> main() async {
       database: db,
       clock: clock,
       folders: (images: images, work: work),
+      lockStore: FileLockStore(lockFile),
       onOpened: (opened) => live = opened,
       backups: BackupService(
         store: resolved.store,
@@ -60,6 +66,7 @@ class AppRoot extends StatefulWidget {
     required this.database,
     required this.clock,
     required this.folders,
+    required this.lockStore,
     required this.backups,
     required this.onOpened,
   });
@@ -70,6 +77,7 @@ class AppRoot extends StatefulWidget {
   final AppDatabase database;
   final SystemClock clock;
   final AppFolders folders;
+  final LockStore lockStore;
   final BackupService backups;
 
   /// Told about the database a restore opens.
@@ -148,6 +156,7 @@ class _AppRootState extends State<AppRoot> {
       restoreBackupProvider.overrideWithValue(_restore),
       replaceDataProvider.overrideWithValue(_import),
       appFoldersProvider.overrideWithValue(widget.folders),
+      lockStoreProvider.overrideWithValue(widget.lockStore),
     ],
     child: const LedgerlyApp(),
   );
