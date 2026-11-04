@@ -1,6 +1,8 @@
 // Backups: a new one every 3 days, the newest 3 kept. Restore replaces everything with a
 // backup, after saving the current data as a safety copy.
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -24,6 +26,7 @@ class BackupsScreen extends ConsumerWidget {
     final now = DateTime.now();
     final latest = state.latest;
     final next = latest?.createdAt.add(service.every);
+    final chosen = !identical(service.store, service.defaultStore);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Backups')),
@@ -97,17 +100,57 @@ class BackupsScreen extends ConsumerWidget {
                 ],
               ),
             ),
-          const SectionHeader('Where they are'),
+          const SectionHeader('Backup folder'),
+          if (service.usingFallback)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: LedgerCard(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    LedgerIcon('alert', color: c.warning),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Ledgerly cannot reach the folder you chose, so backups go to its own folder for now. '
+                        'Choose the folder again to give Ledgerly access, or choose another one.',
+                        style: context.text.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           LedgerCard(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(chosen ? 'A folder you chose' : 'Ledgerly\'s own folder', style: context.text.label),
+                const SizedBox(height: 2),
                 SelectableText(service.store.displayName, style: context.text.bodySmall),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: state.working ? null : () => _chooseFolder(context, ref),
+                  icon: const LedgerIcon('archive', size: 16),
+                  label: Text(chosen || service.usingFallback ? 'Choose another folder' : 'Choose a folder'),
+                ),
+                if (chosen || service.usingFallback)
+                  TextButton(
+                    onPressed: state.working
+                        ? null
+                        : () async {
+                            await ref.read(backupControllerProvider.notifier).useDefaultFolder();
+                            if (context.mounted) {
+                              showUndo(context, 'Backups go to Ledgerly\'s own folder again');
+                            }
+                          },
+                    child: const Text('Use Ledgerly\'s own folder'),
+                  ),
                 const SizedBox(height: 8),
                 Text(
-                  'Each backup is a complete SQLite file of your data. On Android the folder is in the app\'s place in shared storage, '
-                  'which a file manager or a computer can reach. Uninstalling Ledgerly removes it, and a copy kept only on the phone '
-                  'does not survive losing the phone, so copy a backup somewhere else now and then.',
+                  'Each backup is a complete SQLite file of your data. Ledgerly\'s own folder is removed with the app, and a copy kept '
+                  'only on the phone does not survive losing it. A folder you choose, such as one on an SD card or one a sync app '
+                  'copies to your computer, keeps them safe. Changing the folder copies the current backups there.',
                   style: context.text.caption,
                 ),
               ],
@@ -116,6 +159,15 @@ class BackupsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _chooseFolder(BuildContext context, WidgetRef ref) async {
+    try {
+      final message = await ref.read(backupControllerProvider.notifier).chooseFolder();
+      if (message != null && context.mounted) showUndo(context, message);
+    } catch (e) {
+      if (context.mounted) showProblem(context, e is FileSystemException ? e.message : '$e');
+    }
   }
 
   Future<void> _confirmRestore(BuildContext context, WidgetRef ref, BackupFile b) async {
