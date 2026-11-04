@@ -787,9 +787,13 @@ class _CategoryChip extends StatelessWidget {
                 children: [
                   LedgerIcon(icon, size: 20, color: enabled ? color : c.textDisabled),
                   const SizedBox(width: 6),
-                  Text(
-                    label,
-                    style: context.text.label.copyWith(color: enabled ? c.textPrimary : c.textDisabled),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.label.copyWith(color: enabled ? c.textPrimary : c.textDisabled),
+                    ),
                   ),
                 ],
               ),
