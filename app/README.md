@@ -98,6 +98,12 @@ Each backup is a complete SQLite file. Uninstalling the app on Android removes i
 
 The icon comes from `design-system/brand/app-icon.svg`. On Android it is an adaptive vector icon in `android/app/src/main/res/drawable/ic_launcher_*.xml`, converted by hand from the SVG and scaled into the safe zone, with a one-colour version for themed icons. If the SVG changes, change those files to match.
 
+On Windows, `windows/runner/resources/app_icon.ico` is rendered from the same SVG at 16 to 256 px, and `assets/brand/app-icon.svg` (shown on the first screen) is refreshed with it:
+
+```bash
+flutter test tool/render_icons.dart
+```
+
 ## Not built yet
 
 - The notebook, reports and monthly close.

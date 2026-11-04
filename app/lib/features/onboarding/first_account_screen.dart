@@ -1,6 +1,7 @@
 // The first launch: everything stays on this device, and the first step is one account.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../ui/icons/ledger_icon.dart';
 import '../../ui/theme/ledgerly_colors.dart';
@@ -12,7 +13,6 @@ class FirstAccountScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -22,12 +22,14 @@ class FirstAccountScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               shrinkWrap: true,
               children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: c.surfaceInverse, borderRadius: BorderRadius.circular(16)),
-                  child: LedgerIcon('ledger', size: 24, color: c.onInverse),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SvgPicture.asset(
+                    'assets/brand/app-icon.svg',
+                    width: 64,
+                    height: 64,
+                    semanticsLabel: 'Ledgerly',
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text('Welcome to Ledgerly', style: context.text.titleLarge),
