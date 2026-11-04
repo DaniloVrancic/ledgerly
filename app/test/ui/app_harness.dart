@@ -16,6 +16,7 @@ import 'package:ledgerly/app/backup_controller.dart';
 import 'package:ledgerly/app/providers.dart';
 import 'package:ledgerly/core/clock.dart';
 import 'package:ledgerly/data/backup/backup_service.dart';
+import 'package:ledgerly/data/backup/backup_store.dart';
 import 'package:ledgerly/data/database/app_database.dart';
 import 'package:ledgerly/data/repositories/account_repository.dart';
 
@@ -53,7 +54,8 @@ class AppHarness {
     tester.view.devicePixelRatio = 2.75;
     // Writes synchronously, so a backup never waits on real file time inside the test clock.
     final backups = BackupService(
-      folder: backupDir,
+      store: LocalFolderStore(Directory('${backupDir.path}/backups')),
+      workDir: Directory('${backupDir.path}/work'),
       clock: clock,
       writeSnapshot: (path) async => File(path).writeAsStringSync('test'),
     );
