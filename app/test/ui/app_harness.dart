@@ -13,11 +13,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerly/app/app.dart';
 import 'package:ledgerly/app/backup_controller.dart';
+import 'package:ledgerly/app/files.dart';
 import 'package:ledgerly/app/providers.dart';
 import 'package:ledgerly/core/clock.dart';
 import 'package:ledgerly/data/backup/backup_service.dart';
 import 'package:ledgerly/data/backup/backup_store.dart';
 import 'package:ledgerly/data/database/app_database.dart';
+import 'package:ledgerly/data/export/age_passphrase.dart';
+import 'package:ledgerly/data/export/ledgerly_file.dart';
 import 'package:ledgerly/data/repositories/account_repository.dart';
 
 class AppHarness {
@@ -29,6 +32,15 @@ class AppHarness {
   final Directory backupDir;
   late String bank;
   late String cash;
+
+  /// What the next "choose a file" returns.
+  PickedFile? nextPick;
+
+  /// Files the app saved through the system save dialog, by name.
+  final saved = <String, Uint8List>{};
+
+  /// Data files the app was asked to replace everything with.
+  final replacedWith = <LedgerlyPreview>[];
 
   /// A database with two accounts, before the app is shown.
   static Future<AppHarness> create(WidgetTester tester) async {
@@ -66,6 +78,25 @@ class AppHarness {
           clockProvider.overrideWithValue(clock),
           backupServiceProvider.overrideWithValue(backups),
           restoreBackupProvider.overrideWithValue((_) async {}),
+          replaceDataProvider.overrideWithValue((file) async {
+            replacedWith.add(file);
+            return 'safety copy';
+          }),
+          appFoldersProvider.overrideWithValue((
+            images: Directory('${backupDir.path}/images'),
+            work: Directory('${backupDir.path}/work'),
+          )),
+          pickFileProvider.overrideWithValue((_) async => nextPick),
+          saveFileProvider.overrideWithValue((name, bytes) async {
+            saved[name] = bytes;
+            return name;
+          }),
+          // On the test's own clock and at a low work factor: a real isolate never reports back
+          // inside the fake clock, and the full work factor is tested elsewhere.
+          passwordCryptoProvider.overrideWithValue((
+            encrypt: (plain, password) async => ageEncrypt(plain, password, logN: 10),
+            decrypt: (sealed, password) async => ageDecrypt(sealed, password),
+          )),
         ],
         child: const LedgerlyApp(),
       ),

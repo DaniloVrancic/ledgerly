@@ -10,12 +10,15 @@ import 'package:path_provider/path_provider.dart';
 
 import 'app/app.dart';
 import 'app/backup_controller.dart';
+import 'app/files.dart';
+import 'app/navigation.dart';
 import 'app/providers.dart';
 import 'core/clock.dart';
 import 'data/backup/backup_service.dart';
 import 'data/backup/backup_store.dart';
 import 'data/database/app_database.dart';
 import 'data/database/connection.dart';
+import 'data/export/ledgerly_file.dart';
 import 'data/repositories/settings_repository.dart';
 
 Future<void> main() async {
@@ -24,6 +27,7 @@ Future<void> main() async {
   final file = await databaseFile();
   final folder = await backupFolder();
   final work = Directory(p.join((await getTemporaryDirectory()).path, 'ledgerly-work'));
+  final images = Directory(p.join((await getApplicationSupportDirectory()).path, 'category_images'));
   final db = openDatabase(file);
   // Backups go to the folder the person chose, or the default one when it is out of reach.
   final chosen = await SettingsRepository(db, clock).read(SettingKeys.backupFolder);
@@ -35,6 +39,7 @@ Future<void> main() async {
       databaseFile: file,
       database: db,
       clock: clock,
+      folders: (images: images, work: work),
       onOpened: (opened) => live = opened,
       backups: BackupService(
         store: resolved.store,
@@ -54,6 +59,7 @@ class AppRoot extends StatefulWidget {
     required this.databaseFile,
     required this.database,
     required this.clock,
+    required this.folders,
     required this.backups,
     required this.onOpened,
   });
@@ -63,6 +69,7 @@ class AppRoot extends StatefulWidget {
   /// Opened in main, before the app is shown.
   final AppDatabase database;
   final SystemClock clock;
+  final AppFolders folders;
   final BackupService backups;
 
   /// Told about the database a restore opens.
@@ -88,18 +95,41 @@ class _AppRootState extends State<AppRoot> {
   /// Saves the current data as a safety copy, then swaps in the backup.
   Future<void> _restore(BackupFile backup) async {
     final restored = await _backups.fetch(backup);
-    await _backups.saveSafetyCopy('restore');
+    await _replaceWith(restored, label: 'restore');
+  }
+
+  /// Puts in the data from a checked data file, pictures included.
+  Future<String> _import(LedgerlyPreview file) async {
+    final images = widget.folders.images..createSync(recursive: true);
+    for (final picture in file.attachments.listSync().whereType<File>()) {
+      picture.copySync(p.join(images.path, p.basename(picture.path)));
+    }
+    relinkAttachments(file.database, images);
+    return _replaceWith(file.database, label: 'import');
+  }
+
+  /// Saves the current data as a safety copy, then swaps [sqlite] in as the database and
+  /// starts every screen again. This device's backup folder is kept. Returns where the
+  /// safety copy went.
+  Future<String> _replaceWith(File sqlite, {required String label}) async {
+    final safety = await _backups.saveSafetyCopy(label);
+    final folder = await SettingsRepository(_db, _clock).read(SettingKeys.backupFolder);
     await _db.close();
     for (final suffix in ['-wal', '-shm', '-journal']) {
       final extra = File('${widget.databaseFile.path}$suffix');
       if (extra.existsSync()) extra.deleteSync();
     }
-    await restored.copy(widget.databaseFile.path);
-    await restored.delete();
-    setState(() {
-      _open();
-      _generation += 1;
-    });
+    await sqlite.copy(widget.databaseFile.path);
+    await sqlite.delete();
+    _open();
+    await SettingsRepository(_db, _clock).write(SettingKeys.backupFolder, folder ?? '');
+    setState(() => _generation += 1);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => messengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text('Your data was replaced. The data from before is saved as $safety.')),
+      ),
+    );
+    return safety;
   }
 
   @override
@@ -116,6 +146,8 @@ class _AppRootState extends State<AppRoot> {
       clockProvider.overrideWithValue(_clock),
       backupServiceProvider.overrideWithValue(_backups),
       restoreBackupProvider.overrideWithValue(_restore),
+      replaceDataProvider.overrideWithValue(_import),
+      appFoldersProvider.overrideWithValue(widget.folders),
     ],
     child: const LedgerlyApp(),
   );

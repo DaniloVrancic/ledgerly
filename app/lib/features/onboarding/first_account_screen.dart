@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../ui/icons/ledger_icon.dart';
 import '../../ui/theme/ledgerly_colors.dart';
 import '../accounts/accounts_screen.dart';
+import '../data/import_screen.dart';
 
 class FirstAccountScreen extends StatelessWidget {
   const FirstAccountScreen({super.key});
@@ -44,6 +45,15 @@ class FirstAccountScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 AccountForm(onCreated: (_) {}),
+                const SizedBox(height: 16),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () =>
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => const ImportScreen())),
+                    icon: const LedgerIcon('inbox', size: 16),
+                    label: const Text('Or import a Ledgerly file'),
+                  ),
+                ),
               ],
             ),
           ),

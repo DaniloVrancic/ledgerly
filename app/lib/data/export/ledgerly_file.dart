@@ -296,7 +296,17 @@ bool isEncryptedLedgerly(List<int> bytes) {
   return true;
 }
 
+/// What the person made: hidden system accounts and categories are left out.
 Map<String, int> _counts(Database db) => {
   for (final t in _counted)
-    t: db.select('SELECT COUNT(*) FROM "$t" WHERE deleted_at IS NULL').first.values.first! as int,
+    t:
+        db
+                .select(
+                  'SELECT COUNT(*) FROM "$t" WHERE deleted_at IS NULL'
+                  '${t == 'accounts' || t == 'categories' ? " AND kind <> 'system'" : ''}',
+                )
+                .first
+                .values
+                .first!
+            as int,
 };
