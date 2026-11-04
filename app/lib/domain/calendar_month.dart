@@ -13,21 +13,6 @@ List<String> monthGrid(int year, int month) {
   return [for (var i = 0; i <= Day.between(start, end); i++) Day.add(start, i)];
 }
 
-/// Every week of [year], Monday first, as 7 days each. Days outside the year are null.
-List<List<String?>> yearWeeks(int year) {
-  final first = Day.ymd(year, 1, 1);
-  var day = Day.add(first, -Day.weekday(first));
-  final weeks = <List<String?>>[];
-  while (Day.year(day) <= year) {
-    weeks.add([
-      for (var i = 0; i < 7; i++)
-        if (Day.year(Day.add(day, i)) == year) Day.add(day, i) else null,
-    ]);
-    day = Day.add(day, 7);
-  }
-  return weeks;
-}
-
 /// 0 for no spending, then 1 to 4 by the day's quartile among the month's spending days:
 /// the share of spending days that spent as much or less, in quarters. With a single
 /// spending day there is nothing to compare with, so it gets a middle step.

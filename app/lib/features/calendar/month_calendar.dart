@@ -18,6 +18,7 @@ import '../../ui/theme/ledgerly_colors.dart';
 import '../../ui/widgets/common.dart';
 import '../../ui/widgets/money_text.dart';
 import 'day_sheet.dart';
+import 'year_heatmap.dart';
 
 /// "42", "1.2k" or "12k", with a plus or a real minus. Empty for zero.
 String compactMoney(int minor) {
@@ -72,6 +73,7 @@ class MonthCalendar extends ConsumerStatefulWidget {
 class _MonthCalendarState extends ConsumerState<MonthCalendar> {
   late int _year = Day.year(ref.read(todayProvider));
   late int _month = Day.month(ref.read(todayProvider));
+  bool _yearView = false;
 
   void _shift(int by) => setState(() {
     final m = _month - 1 + by;
@@ -79,8 +81,56 @@ class _MonthCalendarState extends ConsumerState<MonthCalendar> {
     _month = m % 12 + 1;
   });
 
+  Widget _header(String title, String unit, VoidCallback back, VoidCallback forward) => Row(
+    children: [
+      IconButton(
+        onPressed: back,
+        icon: Transform.flip(flipX: true, child: const LedgerIcon('chevron')),
+        tooltip: 'Previous $unit',
+      ),
+      Expanded(
+        child: Text(title, style: context.text.title, textAlign: TextAlign.center),
+      ),
+      IconButton(onPressed: forward, icon: const LedgerIcon('chevron'), tooltip: 'Next $unit'),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
+    final switcher = SegmentedButton<bool>(
+      showSelectedIcon: false,
+      segments: const [
+        ButtonSegment(value: false, label: Text('Month')),
+        ButtonSegment(value: true, label: Text('Year')),
+      ],
+      selected: {_yearView},
+      onSelectionChanged: (s) => setState(() => _yearView = s.first),
+    );
+    if (_yearView) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          switcher,
+          _header('$_year', 'year', () => setState(() => _year -= 1), () => setState(() => _year += 1)),
+          LedgerCard(
+            padding: const EdgeInsets.all(4),
+            child: YearHeatmap(
+              year: _year,
+              onMonth: (m) => setState(() {
+                _month = m;
+                _yearView = false;
+              }),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text('Each square is a day. Tap a month to open its days.', style: context.text.caption),
+        ],
+      );
+    }
+    return _monthView(switcher);
+  }
+
+  Widget _monthView(Widget switcher) {
     final today = ref.watch(todayProvider);
     final grid = monthGrid(_year, _month);
     final totals = ref.watch(dayTotalsProvider((grid.first, grid.last))).value ?? const <String, DayTotals>{};
@@ -101,23 +151,8 @@ class _MonthCalendarState extends ConsumerState<MonthCalendar> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            IconButton(
-              onPressed: () => _shift(-1),
-              icon: Transform.flip(flipX: true, child: const LedgerIcon('chevron')),
-              tooltip: 'Previous month',
-            ),
-            Expanded(
-              child: Text(
-                '${Day.monthName(_month)} $_year',
-                style: context.text.title,
-                textAlign: TextAlign.center,
-              ),
-            ),
-            IconButton(onPressed: () => _shift(1), icon: const LedgerIcon('chevron'), tooltip: 'Next month'),
-          ],
-        ),
+        switcher,
+        _header('${Day.monthName(_month)} $_year', 'month', () => _shift(-1), () => _shift(1)),
         TileGrid(
           children: [
             MetricTile(
