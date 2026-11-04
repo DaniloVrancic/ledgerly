@@ -29,6 +29,12 @@ dependencies:
   flutter_svg: ^2.2.4
   # The system's own file picker, for bank statements, data files and the backup folder.
   file_picker: ^13.3.2
+  # The .ledgerly data file is a ZIP.
+  archive: ^4.6.0
+  # Checks a data file's database read-only before it replaces anything. Drift already uses it.
+  sqlite3: ^3.8.0
+  # SHA-256 of every file in a data file, to prove it arrived whole.
+  crypto: ^3.0.8
 
 dev_dependencies:
   flutter_test:
