@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'app/app.dart';
 import 'app/backup_controller.dart';
+import 'app/device_security.dart';
 import 'app/files.dart';
 import 'app/lock_controller.dart';
 import 'app/navigation.dart';
@@ -90,6 +91,7 @@ class AppRoot extends StatefulWidget {
 class _AppRootState extends State<AppRoot> {
   late AppDatabase _db = widget.database;
   late final BackupService _backups = widget.backups;
+  final _biometrics = LocalAuthBiometrics();
   SystemClock get _clock => widget.clock;
 
   /// Changes after a restore, so every screen starts again on the restored data.
@@ -157,6 +159,8 @@ class _AppRootState extends State<AppRoot> {
       replaceDataProvider.overrideWithValue(_import),
       appFoldersProvider.overrideWithValue(widget.folders),
       lockStoreProvider.overrideWithValue(widget.lockStore),
+      biometricsProvider.overrideWithValue(_biometrics),
+      secureWindowProvider.overrideWithValue(setSecureWindow),
     ],
     child: const LedgerlyApp(),
   );

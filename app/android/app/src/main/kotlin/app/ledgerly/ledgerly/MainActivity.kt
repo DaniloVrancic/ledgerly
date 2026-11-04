@@ -8,7 +8,8 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
-import io.flutter.embedding.android.FlutterActivity
+import android.view.WindowManager
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -16,11 +17,16 @@ import java.io.File
 import java.util.concurrent.Executors
 
 /**
- * Ledgerly's only native code: a backup folder the person chooses through Android's folder
- * picker. Access is kept across restarts with a persisted URI permission. File work runs on
- * one background thread and answers on the main thread.
+ * Ledgerly's only native code:
+ * - "ledgerly/folder": a backup folder the person chooses through Android's folder picker.
+ *   Access is kept across restarts with a persisted URI permission. File work runs on one
+ *   background thread and answers on the main thread.
+ * - "ledgerly/window": while the app lock is on, the window is marked secure, so the
+ *   recent-apps screen shows no content and screenshots are blocked.
+ *
+ * A FlutterFragmentActivity, as the fingerprint prompt (local_auth) needs one.
  */
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private val io = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
     private var picking: MethodChannel.Result? = null
@@ -31,6 +37,19 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "ledgerly/folder")
             .setMethodCallHandler { call, result ->
                 if (call.method == "pick") pick(call, result) else inBackground(call, result)
+            }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "ledgerly/window")
+            .setMethodCallHandler { call, result ->
+                if (call.method == "secure") {
+                    if (call.arguments == true) {
+                        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    } else {
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    }
+                    result.success(null)
+                } else {
+                    result.notImplemented()
+                }
             }
     }
 

@@ -38,6 +38,7 @@ dart run build_runner build
 | Accounts | Balances, a balance check that saves any difference as Untracked, and a nudge when Cash has not been checked for two weeks. |
 | Statement import | Settings › Import bank statement. Choose a CSV export from your bank (comma, semicolon or tab, UTF-8 or Windows-1250), check the guessed date, amount and description columns, and choose the account. Ledgerly then shows what is already recorded (same amount within 3 days), what is missing, likely duplicates and unreadable lines. Only ticked rows are added, in one step with Undo. Without a category, money out waits in Needs Review; money in needs an income category first. |
 | Export and import | Settings › Export all data writes one `.ledgerly` file: a ZIP with an SQLite snapshot, every table as CSV, category pictures and a manifest with SHA-256 hashes. A password is optional and uses the open age format, so `age -d` opens it too. The file is read back and checked before it is saved. Settings › Import a Ledgerly file (also on the first screen) checks the file, shows its date and counts, asks for the password if there is one, and replaces everything only after you type REPLACE, saving a safety copy first. |
+| App lock | Off by default. Settings › App lock turns it on with a 4 to 8 digit PIN, stored only as a salted PBKDF2 hash. Ledgerly locks when it opens and after it has been away longer than the delay (immediately, 1, 5 or 15 minutes; 5 by default). On Android the fingerprint or face unlock can be used too, and while the lock is on the app's content is hidden in recent apps and screenshots are blocked. After 5 wrong PINs it waits 30 seconds, doubling up to 5 minutes. The lock's settings are kept outside the database, so a restore or import never changes them. |
 | Backups | Every 3 days, the newest 3 kept, the newest replacing the oldest. Restore saves the current data as a safety copy first. Settings › Backups › Choose a folder puts them in a folder you pick (Android's folder picker or the Windows folder dialog), such as an SD card or a folder a sync app copies to your computer; the current backups are copied there. If that folder can't be reached, backups go to Ledgerly's own folder and Home and Backups say so. |
 
 ## The money rules
@@ -97,5 +98,5 @@ Each backup is a complete SQLite file. Uninstalling the app on Android removes i
 
 - The notebook, reports and monthly close.
 - Splitting one payment across several categories, and purchases in a third currency. The postings model supports both; only the screens are missing.
-- App lock, the home-screen widget, and a read-only desktop copy.
+- The home-screen widget and a read-only desktop copy.
 - A custom app icon. It still uses the Flutter default.
