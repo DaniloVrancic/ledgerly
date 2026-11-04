@@ -256,6 +256,37 @@ void main() {
     expect(days.containsKey('2026-10-27'), isFalse);
   });
 
+  test('a statement import adds the chosen rows, and Undo removes them all', () async {
+    final (added, undo) = await l.entries.importStatement(l.bank, const [
+      ImportDraft(day: '2026-10-01', amountMinor: -4520, title: 'KONZUM 123', categoryId: 'groceries'),
+      ImportDraft(day: '2026-10-04', amountMinor: -160, title: 'Bus'),
+      ImportDraft(day: '2026-10-03', amountMinor: 200000, title: 'Plata', categoryId: 'salary'),
+    ]);
+    expect(added, 3);
+    final list = await l.entries.watchEntries(const EntryQuery()).first;
+    expect(list, hasLength(3));
+    expect(list.where((e) => e.needsReview).single.displayTitle, 'Bus');
+    expect(await october(), (income: 200000, spending: 4520 + 160));
+
+    final recorded = await l.entries.signedAmountsOnAccount(l.bank, '2026-09-28', '2026-10-07');
+    expect(recorded.map((e) => e.amountMinor), containsAll([-4520, -160, 200000]));
+
+    await undo();
+    expect(await l.entries.watchEntries(const EntryQuery()).first, isEmpty);
+    expect(await l.balance(l.bank), 100000);
+  });
+
+  test('money coming in is not imported without an income category, and nothing is added', () async {
+    expect(
+      () => l.entries.importStatement(l.bank, const [
+        ImportDraft(day: '2026-10-01', amountMinor: -100, title: 'Kiosk'),
+        ImportDraft(day: '2026-10-03', amountMinor: 5000, title: 'Unknown'),
+      ]),
+      throwsA(isA<RuleException>()),
+    );
+    expect(await l.entries.watchEntries(const EntryQuery()).first, isEmpty);
+  });
+
   test('rules are enforced', () async {
     expect(
       () => l.entries.addEntry(isExpense: true, accountId: l.bank, amountMinor: 0, categoryId: 'coffee'),
