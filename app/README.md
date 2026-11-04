@@ -96,7 +96,7 @@ Each backup is a complete SQLite file. Uninstalling the app on Android removes i
 
 ## On phones
 
-Ledgerly draws edge to edge under transparent status and navigation bars, whose icons follow light and dark. Phones stay in portrait; tablets and desktop windows turn freely. Android shows a splash in the icon's green with its artwork (the system splash on Android 12 and later), and back gestures preview the page underneath (predictive back).
+Ledgerly draws edge to edge under transparent status and navigation bars, whose icons follow light and dark. Phones stay in portrait; tablets and desktop windows turn freely. `test/ui/small_screen_test.dart` opens the main screens on a 360 x 640 phone at 100% and 150% text and fails on any layout overflow. The calendar grid and the bottom bar keep their figures and labels near their size (the calendar's full figures are in each day's screen-reader label and day sheet); everything else grows with the system text size. Android shows a splash in the icon's green with its artwork (the system splash on Android 12 and later), and back gestures preview the page underneath (predictive back).
 
 ## App icon
 

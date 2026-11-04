@@ -266,45 +266,51 @@ class _DayCell extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
             onTap: () => showDaySheet(context, day),
-            child: Opacity(
-              opacity: outside ? 0.45 : 1,
-              child: SizedBox(
-                height: 58,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 3, 4, 3),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${Day.dayOfMonth(day)}',
-                        style: context.text.caption.copyWith(
-                          color: day == today ? c.accent : c.textSecondary,
-                          fontWeight: day == today ? FontWeight.w700 : null,
-                        ),
-                      ),
-                      const Spacer(),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          compactMoney(net),
+            // A fixed grid: the figures stay at their size, and the cell's label and the day
+            // sheet give them in full at any text size.
+            child: MediaQuery.withNoTextScaling(
+              child: Opacity(
+                opacity: outside ? 0.45 : 1,
+                child: SizedBox(
+                  height: 58,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 3, 4, 3),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${Day.dayOfMonth(day)}',
                           style: context.text.caption.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: future
-                                ? c.textTertiary
-                                : net > 0
-                                ? c.positive
-                                : c.textPrimary,
+                            color: day == today ? c.accent : c.textSecondary,
+                            fontWeight: day == today ? FontWeight.w700 : null,
                           ),
                         ),
-                      ),
-                      SizedBox(
-                        height: 12,
-                        child: Row(
-                          children: [for (final m in marks.take(3)) LedgerIcon(m.$1, size: 12, color: m.$2)],
+                        const Spacer(),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            compactMoney(net),
+                            style: context.text.caption.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: future
+                                  ? c.textTertiary
+                                  : net > 0
+                                  ? c.positive
+                                  : c.textPrimary,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                        SizedBox(
+                          height: 12,
+                          child: Row(
+                            children: [
+                              for (final m in marks.take(3)) LedgerIcon(m.$1, size: 12, color: m.$2),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -328,7 +334,7 @@ class CalendarLegend extends StatelessWidget {
       children: [
         LedgerIcon(icon, size: 12, color: color),
         const SizedBox(width: 4),
-        Text(text, style: context.text.caption),
+        Flexible(child: Text(text, style: context.text.caption)),
       ],
     );
     return Wrap(
@@ -347,7 +353,7 @@ class CalendarLegend extends StatelessWidget {
                 decoration: BoxDecoration(color: heatColor(c, s), borderRadius: BorderRadius.circular(3)),
               ),
             const SizedBox(width: 4),
-            Text('Less to more spent', style: context.text.caption),
+            Flexible(child: Text('Less to more spent', style: context.text.caption)),
           ],
         ),
         mark('up', c.positive, 'Income'),

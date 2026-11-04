@@ -194,7 +194,9 @@ class BudgetStateLabel extends StatelessWidget {
           LedgerIcon('alert', size: 16, color: color),
           const SizedBox(width: 4),
         ],
-        Text(budgetStateText(view), style: context.text.caption.copyWith(color: color)),
+        Flexible(
+          child: Text(budgetStateText(view), style: context.text.caption.copyWith(color: color)),
+        ),
       ],
     );
   }

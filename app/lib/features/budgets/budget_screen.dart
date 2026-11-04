@@ -78,11 +78,14 @@ class BudgetScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    BudgetStateLabel(view: v),
-                    const Spacer(),
-                    Text(
-                      '${v.period.days - v.daysLeft} of ${v.period.days} days gone',
-                      style: context.text.caption,
+                    Flexible(child: BudgetStateLabel(view: v)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${v.period.days - v.daysLeft} of ${v.period.days} days gone',
+                        style: context.text.caption,
+                        textAlign: TextAlign.end,
+                      ),
                     ),
                   ],
                 ),

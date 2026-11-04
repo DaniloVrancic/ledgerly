@@ -38,20 +38,28 @@ class _EntriesScreenState extends ConsumerState<EntriesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Entries'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: SegmentedButton<bool>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: false, label: Text('List')),
-                ButtonSegment(value: true, label: Text('Calendar')),
-              ],
-              selected: {_calendar},
-              onSelectionChanged: (s) => setState(() => _calendar = s.first),
+        // Its own row under the title, so it fits small phones with large text.
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: MediaQuery.withClampedTextScaling(
+                maxScaleFactor: 1.3,
+                child: SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('List')),
+                    ButtonSegment(value: true, label: Text('Calendar')),
+                  ],
+                  selected: {_calendar},
+                  onSelectionChanged: (s) => setState(() => _calendar = s.first),
+                ),
+              ),
             ),
           ),
-        ],
+        ),
       ),
       body: _calendar
           ? ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 96), children: const [MonthCalendar()])
