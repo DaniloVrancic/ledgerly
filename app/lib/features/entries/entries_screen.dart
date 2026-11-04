@@ -15,6 +15,7 @@ import '../../ui/widgets/common.dart';
 import '../../ui/widgets/entry_tile.dart';
 import '../../ui/widgets/money_text.dart';
 import '../../ui/widgets/undo.dart';
+import '../calendar/month_calendar.dart';
 import '../categories/category_picker.dart';
 import 'entry_details_screen.dart';
 import 'needs_review_screen.dart';
@@ -28,41 +29,62 @@ class EntriesScreen extends ConsumerStatefulWidget {
 
 class _EntriesScreenState extends ConsumerState<EntriesScreen> {
   EntryQuery _query = const EntryQuery();
+  bool _calendar = false;
 
   @override
   Widget build(BuildContext context) {
     final review =
         ref.watch(entriesProvider(const EntryQuery(needsReview: true, limit: 50))).value ?? const [];
     return Scaffold(
-      appBar: AppBar(title: const Text('Entries')),
-      body: Column(
-        children: [
-          _Filters(query: _query, onChanged: (q) => setState(() => _query = q)),
-          if (review.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: LedgerCard(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                onTap: () =>
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const NeedsReviewScreen())),
-                child: Row(
-                  children: [
-                    LedgerIcon('flag', color: context.colors.warning),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '${review.length} ${review.length == 1 ? 'entry needs' : 'entries need'} a category',
-                        style: context.text.label,
-                      ),
-                    ),
-                    const LedgerIcon('chevron'),
-                  ],
-                ),
-              ),
+      appBar: AppBar(
+        title: const Text('Entries'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: SegmentedButton<bool>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: false, label: Text('List')),
+                ButtonSegment(value: true, label: Text('Calendar')),
+              ],
+              selected: {_calendar},
+              onSelectionChanged: (s) => setState(() => _calendar = s.first),
             ),
-          Expanded(child: EntryList(query: _query)),
+          ),
         ],
       ),
+      body: _calendar
+          ? ListView(padding: const EdgeInsets.fromLTRB(16, 0, 16, 96), children: const [MonthCalendar()])
+          : Column(
+              children: [
+                _Filters(query: _query, onChanged: (q) => setState(() => _query = q)),
+                if (review.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: LedgerCard(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const NeedsReviewScreen()),
+                      ),
+                      child: Row(
+                        children: [
+                          LedgerIcon('flag', color: context.colors.warning),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              '${review.length} ${review.length == 1 ? 'entry needs' : 'entries need'} a category',
+                              style: context.text.label,
+                            ),
+                          ),
+                          const LedgerIcon('chevron'),
+                        ],
+                      ),
+                    ),
+                  ),
+                Expanded(child: EntryList(query: _query)),
+              ],
+            ),
     );
   }
 }

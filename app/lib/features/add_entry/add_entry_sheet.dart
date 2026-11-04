@@ -29,18 +29,21 @@ import 'chip_order.dart';
 
 enum EntryKind { expense, income, transfer }
 
-/// Opens the Add sheet from anywhere.
-Future<void> openAddEntry(BuildContext context, {EntryKind kind = EntryKind.expense}) {
+/// Opens the Add sheet from anywhere. [day] dates the entry, for example from the calendar.
+Future<void> openAddEntry(BuildContext context, {EntryKind kind = EntryKind.expense, String? day}) {
   final ctx = rootNavigatorKey.currentContext ?? context;
-  return showLedgerSheet(ctx, (_) => AddEntrySheet(initialKind: kind));
+  return showLedgerSheet(ctx, (_) => AddEntrySheet(initialKind: kind, initialDay: day));
 }
 
 enum _Panel { none, account, toAccount, date, allCategories }
 
 class AddEntrySheet extends ConsumerStatefulWidget {
-  const AddEntrySheet({super.key, this.initialKind = EntryKind.expense});
+  const AddEntrySheet({super.key, this.initialKind = EntryKind.expense, this.initialDay});
 
   final EntryKind initialKind;
+
+  /// Today when not given.
+  final String? initialDay;
 
   @override
   ConsumerState<AddEntrySheet> createState() => _AddEntrySheetState();
@@ -56,7 +59,7 @@ class _AddEntrySheetState extends ConsumerState<AddEntrySheet> {
   final _textFocus = [FocusNode(), FocusNode(), FocusNode(), FocusNode()];
   String? _accountId;
   String? _toAccountId;
-  late String _day = ref.read(todayProvider);
+  late String _day = widget.initialDay ?? ref.read(todayProvider);
   String? _categoryId;
 
   /// A remembered title was chosen, so chips select and a Save button confirms.

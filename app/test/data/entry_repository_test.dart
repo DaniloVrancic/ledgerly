@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerly/data/repositories/entry_repository.dart';
 import 'package:ledgerly/data/repositories/entry_view.dart';
 import 'package:ledgerly/domain/postings.dart';
+import 'package:ledgerly/domain/repeat_schedule.dart';
 
 import 'test_ledger.dart';
 
@@ -201,6 +202,58 @@ void main() {
     await l.entries.addEntry(isExpense: true, accountId: l.cash, amountMinor: 400, categoryId: 'coffee');
     await l.entries.addEntry(isExpense: true, accountId: l.cash, amountMinor: 180, categoryId: 'transit');
     expect(await l.entries.mostUsedCategories(l.cash, 'expense'), ['coffee', 'transit']);
+  });
+
+  test('calendar days: spending, income, count, top category and paid repeats', () async {
+    final (bread, _) = await l.entries.addEntry(
+      isExpense: true,
+      accountId: l.bank,
+      amountMinor: 3000,
+      categoryId: 'groceries',
+      day: '2026-10-28',
+    );
+    await l.entries.addEntry(
+      isExpense: true,
+      accountId: l.bank,
+      amountMinor: 1200,
+      categoryId: 'transit',
+      day: '2026-10-28',
+    );
+    await l.entries.addRefund(ofEntryId: bread, amountMinor: 500, day: '2026-10-28');
+    await l.entries.addEntry(
+      isExpense: false,
+      accountId: l.bank,
+      amountMinor: 200000,
+      categoryId: 'salary',
+      day: '2026-10-29',
+    );
+    await l.entries.addTransfer(fromAccountId: l.bank, toAccountId: l.cash, amountMinor: 5000);
+    final rent = await l.repeats.create(
+      title: 'Rent',
+      kind: 'expense',
+      categoryId: 'rent',
+      accountId: l.bank,
+      amountMinor: 46000,
+      every: Every.monthly,
+      nextDay: '2026-10-29',
+    );
+    await l.repeats.markPaid(rent);
+
+    final days = await l.entries.watchDayTotals('2026-10-01', '2026-10-31').first;
+    final tue = days['2026-10-28']!;
+    expect(tue.spentMinor, 3000 + 1200 - 500, reason: 'the refund lowers spending');
+    expect(tue.incomeMinor, 0);
+    expect(tue.count, 3);
+    expect(tue.topCategoryId, 'food');
+    expect(tue.hasRepeat, isFalse);
+
+    final wed = days['2026-10-29']!;
+    expect(wed.incomeMinor, 200000);
+    expect(wed.spentMinor, 46000, reason: 'the transfer never counts');
+    expect(wed.count, 3, reason: 'salary, transfer and rent are all entries');
+    expect(wed.hasRepeat, isTrue);
+    expect(wed.netMinor, 200000 - 46000);
+    expect(days.containsKey('2026-10-27'), isFalse);
   });
 
   test('rules are enforced', () async {

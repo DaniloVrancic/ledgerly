@@ -437,6 +437,58 @@ class EntryRepository extends Repository {
     );
   }
 
+  /// Each day's spending, income, entry count, top category and paid repeats, for the calendar.
+  /// Days without entries are left out.
+  Stream<Map<String, DayTotals>> watchDayTotals(String start, String end) => db
+      .customSelect(
+        '''
+        SELECT e.day AS day, COALESCE(c.parent_id, c.id) AS category, c.kind AS kind, SUM(p.base_minor) AS total
+        FROM postings p
+        JOIN entries e ON e.id = p.entry_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE e.deleted_at IS NULL AND p.deleted_at IS NULL AND e.day BETWEEN ? AND ? AND c.kind IN ('expense', 'income')
+        GROUP BY e.day, category, c.kind
+        ''',
+        variables: [Variable.withString(start), Variable.withString(end)],
+        readsFrom: {db.postings, db.entries, db.categories},
+      )
+      .watch()
+      .asyncMap((rows) async {
+        final days = await db
+            .customSelect(
+              'SELECT day, COUNT(*) AS n, MAX(repeat_id IS NOT NULL) AS paid FROM entries '
+              'WHERE deleted_at IS NULL AND day BETWEEN ? AND ? GROUP BY day',
+              variables: [Variable.withString(start), Variable.withString(end)],
+            )
+            .get();
+        final spent = <String, int>{};
+        final income = <String, int>{};
+        final top = <String, (String, int)>{};
+        for (final r in rows) {
+          final day = r.read<String>('day');
+          final total = r.read<int>('total');
+          if (r.read<String>('kind') == 'expense') {
+            spent[day] = (spent[day] ?? 0) - total;
+            final best = top[day];
+            if (-total > 0 && (best == null || -total > best.$2)) {
+              top[day] = (r.read<String>('category'), -total);
+            }
+          } else {
+            income[day] = (income[day] ?? 0) + total;
+          }
+        }
+        return {
+          for (final d in days)
+            d.read<String>('day'): DayTotals(
+              spentMinor: spent[d.read<String>('day')] ?? 0,
+              incomeMinor: income[d.read<String>('day')] ?? 0,
+              count: d.read<int>('n'),
+              topCategoryId: top[d.read<String>('day')]?.$1,
+              hasRepeat: d.read<int>('paid') == 1,
+            ),
+        };
+      });
+
   /// Spending inside one category, split by its subcategories, in EUR.
   Stream<List<CategoryAmount>> watchSubcategoryTotals(String parentId, String start, String end) => db
       .customSelect(

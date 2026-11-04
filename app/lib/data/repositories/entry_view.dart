@@ -67,3 +67,29 @@ class EntryView {
   /// The title, or the merchant when there is no title.
   String get displayTitle => entry.title ?? entry.merchant ?? 'No title';
 }
+
+/// One calendar day's figures, in EUR. Transfers and balance checks never count.
+class DayTotals {
+  const DayTotals({
+    this.spentMinor = 0,
+    this.incomeMinor = 0,
+    this.count = 0,
+    this.topCategoryId,
+    this.hasRepeat = false,
+  });
+
+  /// Expenses minus refunds.
+  final int spentMinor;
+  final int incomeMinor;
+
+  /// Entries of any kind on the day.
+  final int count;
+
+  /// The top-level category with the most spending.
+  final String? topCategoryId;
+
+  /// A paid repeat was recorded on the day.
+  final bool hasRepeat;
+
+  int get netMinor => incomeMinor - spentMinor;
+}
