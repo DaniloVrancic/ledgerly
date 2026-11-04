@@ -4,6 +4,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -26,6 +27,13 @@ import 'data/security/lock_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Drawn under transparent system bars; screens keep clear of them with safe areas.
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  // Phones stay upright; tablets and desktop windows turn freely.
+  final view = WidgetsBinding.instance.platformDispatcher.views.first;
+  if (view.physicalSize.shortestSide / view.devicePixelRatio < 600) {
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  }
   final clock = SystemClock();
   final file = await databaseFile();
   final folder = await backupFolder();

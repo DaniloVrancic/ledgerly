@@ -1,6 +1,7 @@
 // Material theme built from the design tokens, so standard widgets match the design system.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'ledgerly_colors.dart';
 
@@ -40,6 +41,11 @@ ThemeData buildTheme(Brightness brightness, AccentChoice accent) {
       elevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: c.textPrimary),
+      systemOverlayStyle: systemBars(brightness),
+    ),
+    // Predictive back on Android: the page underneath shows while swiping back.
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {TargetPlatform.android: PredictiveBackPageTransitionsBuilder()},
     ),
     cardTheme: CardThemeData(
       color: c.surface1,
@@ -131,5 +137,20 @@ ThemeData buildTheme(Brightness brightness, AccentChoice accent) {
       shape: const CircleBorder(),
     ),
     listTileTheme: ListTileThemeData(iconColor: c.textSecondary, textColor: c.textPrimary),
+  );
+}
+
+/// Transparent status and navigation bars, drawn edge to edge, with icons that stay readable
+/// on the app's light or dark background.
+SystemUiOverlayStyle systemBars(Brightness brightness) {
+  final iconBrightness = brightness == Brightness.dark ? Brightness.light : Brightness.dark;
+  return SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: iconBrightness,
+    statusBarBrightness: brightness,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+    systemNavigationBarIconBrightness: iconBrightness,
+    systemNavigationBarContrastEnforced: false,
   );
 }
