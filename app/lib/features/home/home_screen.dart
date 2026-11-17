@@ -1,5 +1,5 @@
-// Home answers, in order: how much do I have, what is due, how is this month going, where is
-// my money going, and what happened lately.
+// Home answers, in order: how much do I have, will I make it to payday, what is due, how is
+// this month going, where is my money going, and what happened lately.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +28,7 @@ import '../entries/needs_review_screen.dart';
 import '../insights/category_insight_screen.dart';
 import '../repeats/repeat_actions.dart';
 import '../settings/backup_status.dart';
+import 'payday_forecast.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -55,6 +56,7 @@ class HomeScreen extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
         children: [
           const _BalanceCard(),
+          const PaydayForecastCard(),
           const _DueSection(),
           SectionHeader(
             'This month',

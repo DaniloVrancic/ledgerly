@@ -56,6 +56,18 @@ Future<void> fillLedger(AppHarness h) async {
       nextDay: '2026-10-29',
     ),
   );
+  // So Home shows the payday forecast card.
+  await h.read(
+    () => RepeatRepository(h.db, h.clock, entries).create(
+      title: 'Salary',
+      kind: 'income',
+      categoryId: 'salary',
+      accountId: h.bank,
+      amountMinor: 245000,
+      every: Every.monthly,
+      nextDay: '2026-11-01',
+    ),
+  );
 }
 
 void main() {
