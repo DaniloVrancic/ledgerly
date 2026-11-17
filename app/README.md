@@ -51,6 +51,11 @@ They live in `lib/domain/postings.dart` and are covered by tests.
 - My share: only your part of a shared payment counts as spending. The rest is "Owed to me" until it is repaid, and the repayment is not income.
 - A balance check saves the difference on Untracked, which reports leave out.
 - Balances are never stored. They are always calculated from the postings.
+- The payday forecast (`lib/domain/payday_forecast.dart`) estimates the lowest balance before the next income repeat, which is payday:
+  - It starts from what is spendable today: the accounts without Savings, less any goal money they hold.
+  - It takes off the monthly and yearly expense repeats due before payday.
+  - It takes off normal daily spending for each day until then: the average of the last 92 days, without monthly and yearly repeats so bills are not counted twice.
+  - While an income repeat is Due and not marked paid, it waits instead of guessing.
 
 ## How the code is organised
 
