@@ -84,14 +84,14 @@ class RepeatsScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
+                          Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 4,
                             children: [
                               TextButton(
                                 onPressed: () => skipRepeat(context, ref, r),
                                 child: const Text('Skip'),
                               ),
-                              const SizedBox(width: 4),
                               FilledButton.icon(
                                 onPressed: () => markRepeatPaid(context, ref, r),
                                 icon: const LedgerIcon('check', size: 16),

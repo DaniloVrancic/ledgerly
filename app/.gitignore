@@ -46,3 +46,13 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Bank statements may hold real financial data. Only test fixtures are committed.
+*.csv
+!test/fixtures/**/*.csv
+
+# Exported data files hold real financial data. Only test fixtures are committed.
+*.ledgerly
+*.age
+!test/fixtures/**/*.ledgerly
+!test/fixtures/**/*.age

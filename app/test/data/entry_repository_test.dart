@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerly/data/repositories/entry_repository.dart';
 import 'package:ledgerly/data/repositories/entry_view.dart';
 import 'package:ledgerly/domain/postings.dart';
+import 'package:ledgerly/domain/repeat_schedule.dart';
 
 import 'test_ledger.dart';
 
@@ -201,6 +202,153 @@ void main() {
     await l.entries.addEntry(isExpense: true, accountId: l.cash, amountMinor: 400, categoryId: 'coffee');
     await l.entries.addEntry(isExpense: true, accountId: l.cash, amountMinor: 180, categoryId: 'transit');
     expect(await l.entries.mostUsedCategories(l.cash, 'expense'), ['coffee', 'transit']);
+  });
+
+  test('calendar days: spending, income, count, top category and paid repeats', () async {
+    final (bread, _) = await l.entries.addEntry(
+      isExpense: true,
+      accountId: l.bank,
+      amountMinor: 3000,
+      categoryId: 'groceries',
+      day: '2026-10-28',
+    );
+    await l.entries.addEntry(
+      isExpense: true,
+      accountId: l.bank,
+      amountMinor: 1200,
+      categoryId: 'transit',
+      day: '2026-10-28',
+    );
+    await l.entries.addRefund(ofEntryId: bread, amountMinor: 500, day: '2026-10-28');
+    await l.entries.addEntry(
+      isExpense: false,
+      accountId: l.bank,
+      amountMinor: 200000,
+      categoryId: 'salary',
+      day: '2026-10-29',
+    );
+    await l.entries.addTransfer(fromAccountId: l.bank, toAccountId: l.cash, amountMinor: 5000);
+    final rent = await l.repeats.create(
+      title: 'Rent',
+      kind: 'expense',
+      categoryId: 'rent',
+      accountId: l.bank,
+      amountMinor: 46000,
+      every: Every.monthly,
+      nextDay: '2026-10-29',
+    );
+    await l.repeats.markPaid(rent);
+
+    final days = await l.entries.watchDayTotals('2026-10-01', '2026-10-31').first;
+    final tue = days['2026-10-28']!;
+    expect(tue.spentMinor, 3000 + 1200 - 500, reason: 'the refund lowers spending');
+    expect(tue.incomeMinor, 0);
+    expect(tue.count, 3);
+    expect(tue.topCategoryId, 'food');
+    expect(tue.hasRepeat, isFalse);
+
+    final wed = days['2026-10-29']!;
+    expect(wed.incomeMinor, 200000);
+    expect(wed.spentMinor, 46000, reason: 'the transfer never counts');
+    expect(wed.count, 3, reason: 'salary, transfer and rent are all entries');
+    expect(wed.hasRepeat, isTrue);
+    expect(wed.netMinor, 200000 - 46000);
+    expect(days.containsKey('2026-10-27'), isFalse);
+  });
+
+  test('a statement import adds the chosen rows, and Undo removes them all', () async {
+    final (added, undo) = await l.entries.importStatement(l.bank, const [
+      ImportDraft(day: '2026-10-01', amountMinor: -4520, title: 'KONZUM 123', categoryId: 'groceries'),
+      ImportDraft(day: '2026-10-04', amountMinor: -160, title: 'Bus'),
+      ImportDraft(day: '2026-10-03', amountMinor: 200000, title: 'Plata', categoryId: 'salary'),
+    ]);
+    expect(added, 3);
+    final list = await l.entries.watchEntries(const EntryQuery()).first;
+    expect(list, hasLength(3));
+    expect(list.where((e) => e.needsReview).single.displayTitle, 'Bus');
+    expect(await october(), (income: 200000, spending: 4520 + 160));
+
+    final recorded = await l.entries.signedAmountsOnAccount(l.bank, '2026-09-28', '2026-10-07');
+    expect(recorded.map((e) => e.amountMinor), containsAll([-4520, -160, 200000]));
+
+    await undo();
+    expect(await l.entries.watchEntries(const EntryQuery()).first, isEmpty);
+    expect(await l.balance(l.bank), 100000);
+  });
+
+  test('money coming in is not imported without an income category, and nothing is added', () async {
+    expect(
+      () => l.entries.importStatement(l.bank, const [
+        ImportDraft(day: '2026-10-01', amountMinor: -100, title: 'Kiosk'),
+        ImportDraft(day: '2026-10-03', amountMinor: 5000, title: 'Unknown'),
+      ]),
+      throwsA(isA<RuleException>()),
+    );
+    expect(await l.entries.watchEntries(const EntryQuery()).first, isEmpty);
+  });
+
+  group('everyday spending', () {
+    Future<EverydaySpending> window() => l.entries.watchEverydaySpending('2026-07-30', '2026-10-29').first;
+
+    test('expenses minus refunds; transfers and balance checks never count', () async {
+      final (id, _) = await l.entries.addEntry(
+        isExpense: true,
+        accountId: l.bank,
+        amountMinor: 8500,
+        categoryId: 'groceries',
+      );
+      await l.entries.addRefund(ofEntryId: id, amountMinor: 2000);
+      await l.entries.addTransfer(fromAccountId: l.bank, toAccountId: l.cash, amountMinor: 5000);
+      final before = await l.balance(l.bank);
+      await l.entries.reconcile(
+        accountId: l.bank,
+        realBalanceMinor: before - 1200,
+        currentBalanceMinor: before,
+      );
+      expect(await window(), (spentMinor: 6500, firstDay: '2026-10-29'));
+    });
+
+    test('monthly repeats are left out, even once stopped; weekly ones stay in', () async {
+      Future<String> paid(String title, Every every, int amount) async {
+        final id = await l.repeats.create(
+          title: title,
+          kind: 'expense',
+          categoryId: 'rent',
+          accountId: l.bank,
+          amountMinor: amount,
+          every: every,
+          nextDay: '2026-10-29',
+        );
+        await l.repeats.markPaid(id);
+        return id;
+      }
+
+      final rent = await paid('Rent', Every.monthly, 46000);
+      await paid('Cleaner', Every.weekly, 3000);
+      expect((await window()).spentMinor, 3000);
+      await l.repeats.stop(rent);
+      expect((await window()).spentMinor, 3000);
+    });
+
+    test('an entry before the window does not count but is the first day', () async {
+      await l.entries.addEntry(
+        isExpense: true,
+        accountId: l.bank,
+        amountMinor: 4000,
+        categoryId: 'groceries',
+        day: '2026-03-01',
+      );
+      expect(await window(), (spentMinor: 0, firstDay: '2026-03-01'));
+    });
+
+    test('nothing recorded', () async {
+      expect(await window(), (spentMinor: 0, firstDay: null));
+    });
+
+    test('an amount saved for later counts as spending', () async {
+      await l.entries.addLater(accountId: l.cash, amountMinor: 1955);
+      expect((await window()).spentMinor, 1000, reason: '19.55 KM is €10.00');
+    });
   });
 
   test('rules are enforced', () async {

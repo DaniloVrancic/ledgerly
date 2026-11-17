@@ -8,6 +8,7 @@ import '../../core/money.dart';
 import '../../core/text.dart';
 import '../../domain/insights.dart';
 import '../../domain/postings.dart';
+import '../../domain/statement/statement_match.dart';
 import '../../domain/system_ids.dart';
 import '../../domain/title_memory.dart';
 import '../database/app_database.dart';
@@ -15,6 +16,18 @@ import 'entry_view.dart';
 import 'repository.dart';
 
 /// What to show in a list of entries. Every field is optional.
+/// A bank statement row chosen for adding.
+class ImportDraft {
+  const ImportDraft({required this.day, required this.amountMinor, required this.title, this.categoryId});
+
+  final String day;
+
+  /// Negative is money out, in the account's currency.
+  final int amountMinor;
+  final String title;
+  final String? categoryId;
+}
+
 class EntryQuery {
   const EntryQuery({
     this.start,
@@ -75,6 +88,9 @@ class EntryQuery {
     limit: limit ?? this.limit,
   );
 }
+
+/// Spending in a range without monthly and yearly repeats, and the day of the first entry ever.
+typedef EverydaySpending = ({int spentMinor, String? firstDay});
 
 class EntryRepository extends Repository {
   EntryRepository(super.db, super.clock);
@@ -299,6 +315,68 @@ class EntryRepository extends Repository {
     return () => _setDeleted(id, null);
   }
 
+  /// What is recorded on an account from [start] to [end], transfers and balance checks
+  /// included, for comparing with a bank statement. Amounts are in the account's currency.
+  Future<List<ExistingEntry>> signedAmountsOnAccount(String accountId, String start, String end) async {
+    final rows = await db
+        .customSelect(
+          'SELECT e.id AS id, e.day AS day, p.amount_minor AS amount FROM postings p '
+          'JOIN entries e ON e.id = p.entry_id '
+          'WHERE p.account_id = ? AND e.deleted_at IS NULL AND p.deleted_at IS NULL AND e.day BETWEEN ? AND ?',
+          variables: [Variable.withString(accountId), Variable.withString(start), Variable.withString(end)],
+          readsFrom: {db.postings, db.entries},
+        )
+        .get();
+    return [
+      for (final r in rows)
+        ExistingEntry(
+          id: r.read<String>('id'),
+          day: r.read<String>('day'),
+          amountMinor: r.read<int>('amount'),
+        ),
+    ];
+  }
+
+  /// Adds statement rows to an account in one go. A row with a category becomes an expense
+  /// or income entry; money out without one waits in Needs Review. Undo removes them all.
+  Future<(int, Undo)> importStatement(String accountId, List<ImportDraft> drafts) async {
+    final undos = <Undo>[];
+    await db.transaction(() async {
+      for (final d in drafts) {
+        final title = d.title.length > 80 ? d.title.substring(0, 80).trim() : d.title;
+        if (d.categoryId != null) {
+          final (_, undo) = await addEntry(
+            isExpense: d.amountMinor < 0,
+            accountId: accountId,
+            amountMinor: d.amountMinor.abs(),
+            categoryId: d.categoryId!,
+            title: title.isEmpty ? null : title,
+            day: d.day,
+          );
+          undos.add(undo);
+        } else if (d.amountMinor < 0) {
+          final (_, undo) = await addLater(
+            accountId: accountId,
+            amountMinor: -d.amountMinor,
+            title: title.isEmpty ? null : title,
+            day: d.day,
+          );
+          undos.add(undo);
+        } else {
+          throw RuleException('Money coming in needs an income category.');
+        }
+      }
+    });
+    return (
+      undos.length,
+      () => db.transaction(() async {
+        for (final undo in undos.reversed) {
+          await undo();
+        }
+      }),
+    );
+  }
+
   /// A copy dated today.
   Future<(String, Undo)> duplicate(String id) async {
     final v = (await find(id))!;
@@ -416,6 +494,33 @@ class EntryRepository extends Repository {
 
   Future<PeriodTotals> totals(String start, String end) => watchTotals(start, end).first;
 
+  /// Normal spending for the payday forecast: expenses minus refunds from [start] to [end],
+  /// leaving out entries paid from monthly or yearly repeats, since those are counted as bills.
+  /// A stopped repeat's entries stay out too. Daily and weekly repeats stay in.
+  Stream<EverydaySpending> watchEverydaySpending(String start, String end) => db
+      .customSelect(
+        '''
+        SELECT
+          COALESCE(-SUM(CASE WHEN c.kind = 'expense' AND (r.id IS NULL OR r.every IN ('daily', 'weekly'))
+                             THEN p.base_minor END), 0) AS spent,
+          (SELECT MIN(day) FROM entries WHERE deleted_at IS NULL) AS first_day
+        FROM postings p
+        JOIN entries e ON e.id = p.entry_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        LEFT JOIN repeats r ON r.id = e.repeat_id
+        WHERE e.deleted_at IS NULL AND p.deleted_at IS NULL AND e.day BETWEEN ? AND ?
+        ''',
+        variables: [Variable.withString(start), Variable.withString(end)],
+        readsFrom: {db.postings, db.entries, db.categories, db.repeats},
+      )
+      .watch()
+      .map(
+        (rows) => (
+          spentMinor: rows.first.read<int>('spent'),
+          firstDay: rows.first.readNullable<String>('first_day'),
+        ),
+      );
+
   PeriodTotals _toTotals(List<QueryRow> rows) {
     final spending = <CategoryAmount>[];
     final income = <CategoryAmount>[];
@@ -436,6 +541,58 @@ class EntryRepository extends Repository {
       incomeByCategory: income,
     );
   }
+
+  /// Each day's spending, income, entry count, top category and paid repeats, for the calendar.
+  /// Days without entries are left out.
+  Stream<Map<String, DayTotals>> watchDayTotals(String start, String end) => db
+      .customSelect(
+        '''
+        SELECT e.day AS day, COALESCE(c.parent_id, c.id) AS category, c.kind AS kind, SUM(p.base_minor) AS total
+        FROM postings p
+        JOIN entries e ON e.id = p.entry_id
+        JOIN categories c ON c.id = p.category_id
+        WHERE e.deleted_at IS NULL AND p.deleted_at IS NULL AND e.day BETWEEN ? AND ? AND c.kind IN ('expense', 'income')
+        GROUP BY e.day, category, c.kind
+        ''',
+        variables: [Variable.withString(start), Variable.withString(end)],
+        readsFrom: {db.postings, db.entries, db.categories},
+      )
+      .watch()
+      .asyncMap((rows) async {
+        final days = await db
+            .customSelect(
+              'SELECT day, COUNT(*) AS n, MAX(repeat_id IS NOT NULL) AS paid FROM entries '
+              'WHERE deleted_at IS NULL AND day BETWEEN ? AND ? GROUP BY day',
+              variables: [Variable.withString(start), Variable.withString(end)],
+            )
+            .get();
+        final spent = <String, int>{};
+        final income = <String, int>{};
+        final top = <String, (String, int)>{};
+        for (final r in rows) {
+          final day = r.read<String>('day');
+          final total = r.read<int>('total');
+          if (r.read<String>('kind') == 'expense') {
+            spent[day] = (spent[day] ?? 0) - total;
+            final best = top[day];
+            if (-total > 0 && (best == null || -total > best.$2)) {
+              top[day] = (r.read<String>('category'), -total);
+            }
+          } else {
+            income[day] = (income[day] ?? 0) + total;
+          }
+        }
+        return {
+          for (final d in days)
+            d.read<String>('day'): DayTotals(
+              spentMinor: spent[d.read<String>('day')] ?? 0,
+              incomeMinor: income[d.read<String>('day')] ?? 0,
+              count: d.read<int>('n'),
+              topCategoryId: top[d.read<String>('day')]?.$1,
+              hasRepeat: d.read<int>('paid') == 1,
+            ),
+        };
+      });
 
   /// Spending inside one category, split by its subcategories, in EUR.
   Stream<List<CategoryAmount>> watchSubcategoryTotals(String parentId, String start, String end) => db

@@ -27,6 +27,19 @@ dependencies:
   image_picker: ^1.2.4
   # The design system's line icons are SVG paths.
   flutter_svg: ^2.2.4
+  # The system's own file picker, for bank statements, data files and the backup folder.
+  file_picker: ^13.3.2
+  # The .ledgerly data file is a ZIP.
+  archive: ^4.6.0
+  # Checks a data file's database read-only before it replaces anything. Drift already uses it.
+  sqlite3: ^3.8.0
+  # SHA-256 of every file in a data file, to prove it arrived whole.
+  crypto: ^3.0.8
+  # Scrypt, ChaCha20-Poly1305, HKDF and HMAC for password-protected data files (age format),
+  # and PBKDF2 for the app lock PIN. Pure Dart.
+  pointycastle: ^4.0.0
+  # The fingerprint or face unlock for the app lock, through the system prompt.
+  local_auth: ^3.0.2
 
 dev_dependencies:
   flutter_test:
@@ -38,3 +51,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    # The app icon, shown on the first screen. A copy of design-system/brand/app-icon.svg,
+    # refreshed by tool/render_icons.dart.
+    - assets/brand/app-icon.svg

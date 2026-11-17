@@ -4,14 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/backup_controller.dart';
+import '../../app/lock_controller.dart';
 import '../../app/providers.dart';
 import '../../data/repositories/settings_repository.dart';
 import '../../domain/repeat_schedule.dart';
 import '../../ui/icons/ledger_icon.dart';
 import '../../ui/theme/ledgerly_colors.dart';
 import '../../ui/widgets/common.dart';
+import '../data/export_screen.dart';
+import '../data/import_screen.dart';
+import '../statement_import/statement_import_screen.dart';
 import 'backup_status.dart';
 import 'backups_screen.dart';
+import 'security_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -99,6 +104,16 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const SectionHeader('Security'),
+          Card(
+            child: ListTile(
+              leading: const LedgerIcon('lock'),
+              title: const Text('App lock'),
+              subtitle: Text(ref.watch(lockControllerProvider).enabled ? 'On' : 'Off'),
+              trailing: const LedgerIcon('chevron'),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SecurityScreen())),
+            ),
+          ),
           const SectionHeader('Your data'),
           Card(
             child: ListTile(
@@ -107,6 +122,40 @@ class SettingsScreen extends ConsumerWidget {
               subtitle: const _BackupSubtitle(),
               trailing: const LedgerIcon('chevron'),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BackupsScreen())),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const LedgerIcon('download'),
+                  title: const Text('Export all data'),
+                  subtitle: const Text('One .ledgerly file, with an optional password'),
+                  trailing: const LedgerIcon('chevron'),
+                  onTap: () =>
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ExportScreen())),
+                ),
+                ListTile(
+                  leading: const LedgerIcon('inbox'),
+                  title: const Text('Import a Ledgerly file'),
+                  subtitle: const Text('Replaces the data on this device'),
+                  trailing: const LedgerIcon('chevron'),
+                  onTap: () =>
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ImportScreen())),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: ListTile(
+              leading: const LedgerIcon('upload'),
+              title: const Text('Import bank statement'),
+              subtitle: const Text('Add what is missing from a CSV file'),
+              trailing: const LedgerIcon('chevron'),
+              onTap: () =>
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const StatementImportScreen())),
             ),
           ),
           const SizedBox(height: 12),

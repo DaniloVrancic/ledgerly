@@ -2,7 +2,7 @@
 
 > **Implementation brief.**
 > - **What to build:** budgets, a calendar, bank statement CSV import, a `.ledgerly` export / import file with an optional age password, a backup folder you choose, an app lock (PIN everywhere, fingerprint on Android), the final app icon and a mobile polish pass.
-> - **How to ship it:** as 17 sequential PRs against `main` of `github.com/DaniloVrancic/ledgerly`. Each PR changes **at most 11 files**, generated, lock and registrant files included.
+> - **How to ship it:** as 17 sequential PRs against `develop` of `github.com/DaniloVrancic/ledgerly`, each merged with a regular merge commit. Each PR changes **at most 11 files**, generated, lock and registrant files included.
 > - **Constraints:** offline only; money rules in `lib/domain`; database access only through `lib/data/repositories`; design-system tokens only; never commit real data.
 > - **How to work:** follow the Steps in order, one branch per PR, and run the Verification commands before each PR. Don't commit anything outside the PR's listed files.
 
@@ -57,8 +57,11 @@ Each pull request is one logical increment that builds, passes its tests and cha
 
 ## Ground rules for every PR
 
-1. **Branching.** Branch from `main` of `github.com/DaniloVrancic/ledgerly`, which is private. Name the branch `feat/<pr-slug>` and open a PR against `main`. Merge before starting the next PR that depends on it. Dependencies are listed per PR.
-2. **File budget.** "Files changed" means everything in `git diff --stat main`, including:
+1. **Branching.** Branch from `develop` of `github.com/DaniloVrancic/ledgerly`, which is private. Name the branch `feat/<pr-slug>` and open a PR against `develop`.
+   - Merge with a regular merge commit (`gh pr merge --merge`), never squash or rebase.
+   - Merge before starting the next PR that depends on it. Dependencies are listed per PR.
+   - `main` is production: `develop` is merged into it for a release, and release builds come from `main`. PR 1 was squash-merged into `main` before this rule; `develop` started from that commit.
+2. **File budget.** "Files changed" means everything in `git diff --stat develop`, including:
    - generated `app_database.g.dart`;
    - `pubspec.lock`;
    - `windows/flutter/generated_plugin_registrant.cc` and `windows/flutter/generated_plugins.cmake`;
@@ -625,7 +628,7 @@ flutter test
 flutter build apk --release       # then check the merged manifest has no INTERNET permission:
 # build/app/intermediates/merged_manifests/release/processReleaseManifest/AndroidManifest.xml
 flutter build windows
-git diff --stat main | tail -1    # must say at most 11 files changed
+git diff --stat develop | tail -1 # must say at most 11 files changed
 ```
 
 ## Risks, migration, compatibility, security

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/backup_controller.dart';
+import '../../app/providers.dart';
 import '../../ui/theme/ledgerly_colors.dart';
 import 'backups_screen.dart';
 
@@ -24,20 +25,29 @@ class BackupStatusLine extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(backupControllerProvider);
+    final fallback = ref.watch(backupServiceProvider).usingFallback;
     final c = context.colors;
     final latest = state.latest;
     final text = state.lastError != null
         ? 'Backup failed. Your data is safe on this device.'
+        : fallback
+        ? 'Your backup folder is out of reach. Backups go to Ledgerly\'s own folder.'
         : latest == null
         ? 'No backup yet'
         : 'Backed up ${backupAge(latest.createdAt, DateTime.now())}';
+    final color = state.lastError != null
+        ? c.negative
+        : fallback
+        ? c.warning
+        : c.textTertiary;
     return Center(
       child: TextButton(
-        style: TextButton.styleFrom(foregroundColor: state.lastError != null ? c.negative : c.textTertiary),
+        style: TextButton.styleFrom(foregroundColor: color),
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BackupsScreen())),
         child: Text(
           text,
-          style: context.text.caption.copyWith(color: state.lastError != null ? c.negative : c.textTertiary),
+          textAlign: TextAlign.center,
+          style: context.text.caption.copyWith(color: color),
         ),
       ),
     );

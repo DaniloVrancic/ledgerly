@@ -1,20 +1,28 @@
 // How the app's parts are wired together. Screens read data from these providers and call
 // the repositories to change it. The database's live queries keep every screen up to date.
 
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/clock.dart';
+import '../core/day.dart';
+import '../core/money.dart';
 import '../core/period.dart';
 import '../data/backup/backup_service.dart';
 import '../data/database/app_database.dart';
 import '../data/repositories/account_repository.dart';
+import '../data/repositories/budget_repository.dart';
 import '../data/repositories/category_repository.dart';
 import '../data/repositories/entry_repository.dart';
 import '../data/repositories/entry_view.dart';
 import '../data/repositories/goal_repository.dart';
 import '../data/repositories/repeat_repository.dart';
 import '../data/repositories/settings_repository.dart';
+import '../domain/budget_plan.dart';
 import '../domain/insights.dart';
+import '../domain/payday_forecast.dart';
+import '../domain/repeat_schedule.dart';
 import '../domain/title_memory.dart';
 import '../ui/theme/ledgerly_colors.dart';
 import 'category_book.dart';
@@ -48,6 +56,9 @@ final repeatRepositoryProvider = Provider(
 final goalRepositoryProvider = Provider(
   (ref) => GoalRepository(ref.watch(databaseProvider), ref.watch(clockProvider)),
 );
+final budgetRepositoryProvider = Provider(
+  (ref) => BudgetRepository(ref.watch(databaseProvider), ref.watch(clockProvider)),
+);
 final settingsRepositoryProvider = Provider(
   (ref) => SettingsRepository(ref.watch(databaseProvider), ref.watch(clockProvider)),
 );
@@ -78,6 +89,12 @@ final titleMemoryProvider = StreamProvider<List<TitleMemory>>(
   (ref) => ref.watch(entryRepositoryProvider).watchTitleMemory(),
 );
 final settingsProvider = StreamProvider((ref) => ref.watch(settingsRepositoryProvider).watchAll());
+final budgetsProvider = StreamProvider((ref) => ref.watch(budgetRepositoryProvider).watchBudgets());
+
+/// Spending in a period per category, subcategory and overall, for budgets.
+final budgetSpendingProvider = StreamProvider.autoDispose.family<Map<String, int>, Period>(
+  (ref, p) => ref.watch(budgetRepositoryProvider).watchSpending(p.start, p.end),
+);
 
 final entriesProvider = StreamProvider.autoDispose.family<List<EntryView>, EntryQuery>(
   (ref, q) => ref.watch(entryRepositoryProvider).watchEntries(q),
@@ -90,6 +107,16 @@ final totalsProvider = StreamProvider.autoDispose.family<PeriodTotals, Period>(
 );
 final subcategoryTotalsProvider = StreamProvider.autoDispose.family<List<CategoryAmount>, (String, Period)>(
   (ref, arg) => ref.watch(entryRepositoryProvider).watchSubcategoryTotals(arg.$1, arg.$2.start, arg.$2.end),
+);
+
+/// Spending from start to end without monthly and yearly repeats, and the first entry's day.
+final everydaySpendingProvider = StreamProvider.autoDispose.family<EverydaySpending, (String, String)>(
+  (ref, range) => ref.watch(entryRepositoryProvider).watchEverydaySpending(range.$1, range.$2),
+);
+
+/// Each day's figures from start to end, for the calendar.
+final dayTotalsProvider = StreamProvider.autoDispose.family<Map<String, DayTotals>, (String, String)>(
+  (ref, range) => ref.watch(entryRepositoryProvider).watchDayTotals(range.$1, range.$2),
 );
 
 // ---- Derived ----
@@ -122,9 +149,82 @@ final accentProvider = Provider<AccentChoice>((ref) {
   return AccentChoice.values.where((a) => a.name == name).firstOrNull ?? AccentChoice.forest;
 });
 
+/// A budget with how it stands in its current month or week.
+typedef BudgetLine = ({Budget budget, BudgetView view});
+
+/// The period a budget covers on [today]: the financial month, or the week.
+Period budgetPeriod(Budget b, String today, int monthStart) =>
+    b.every == BudgetEvery.weekly ? weekOf(today) : periodOf(today, startDay: monthStart);
+
+/// Every budget as it stands now: all spending first, then the fullest first.
+final budgetLinesProvider = Provider<List<BudgetLine>>((ref) {
+  final today = ref.watch(todayProvider);
+  final monthStart = ref.watch(monthStartProvider);
+  final lines = <BudgetLine>[
+    for (final b in ref.watch(budgetsProvider).value ?? const <Budget>[])
+      (
+        budget: b,
+        view: () {
+          final period = budgetPeriod(b, today, monthStart);
+          final spent = ref.watch(budgetSpendingProvider(period)).value ?? const {};
+          return viewBudget(
+            limitMinor: b.limitMinor,
+            spentMinor: spent[b.categoryId ?? BudgetRepository.overall] ?? 0,
+            period: period,
+            today: today,
+          );
+        }(),
+      ),
+  ];
+  lines.sort((a, b) {
+    final overall = (a.budget.categoryId == null ? 0 : 1).compareTo(b.budget.categoryId == null ? 0 : 1);
+    return overall != 0 ? overall : b.view.ratio.compareTo(a.view.ratio);
+  });
+  return lines;
+});
+
 final dueRepeatsProvider = Provider((ref) {
   final today = ref.watch(todayProvider);
   return (ref.watch(repeatsProvider).value ?? const [])
       .where((r) => r.nextDay.compareTo(today) <= 0)
       .toList();
+});
+
+/// Home's "Lowest before payday". Null while its data is still loading.
+final paydayForecastProvider = Provider.autoDispose<ForecastOutcome?>((ref) {
+  final today = ref.watch(todayProvider);
+  final accounts = ref.watch(accountsProvider).value;
+  final repeats = ref.watch(repeatsProvider).value;
+  final setAside = ref.watch(setAsideProvider).value;
+  final everyday = ref
+      .watch(everydaySpendingProvider((Day.add(today, -(forecastWindowDays - 1)), today)))
+      .value;
+  if (accounts == null || repeats == null || setAside == null || everyday == null) return null;
+
+  // Goal money is taken from Savings accounts first, then from the rest.
+  final savings = AccountKind.savings.name;
+  final nonSavings = accounts.where((a) => a.account.kind != savings).fold(0, (s, a) => s + a.baseMinor);
+  final spendable = min(nonSavings, ref.watch(freeToUseProvider));
+
+  // Repeats on archived accounts are left out, as their balances are.
+  final byId = {for (final a in accounts) a.id: a.account};
+  return forecastToPayday(
+    today: today,
+    spendableMinor: spendable,
+    repeats: [
+      for (final r in repeats)
+        if (byId[r.accountId] case final account?)
+          ForecastRepeat(
+            title: r.title,
+            isIncome: r.kind == 'income',
+            every: Every.parse(r.every),
+            nextDay: r.nextDay,
+            anchorDay: r.anchorDay,
+            baseMinor: toBase(r.amountMinor, account.currency),
+            onSavings: account.kind == savings,
+          ),
+    ],
+    everydaySpendingMinor: everyday.spentMinor,
+    firstEntryDay: everyday.firstDay,
+  );
 });

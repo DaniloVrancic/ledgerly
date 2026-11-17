@@ -17,6 +17,12 @@ The app is built in Flutter, in [app/](app/README.md), for Android and Windows. 
 - Design system and prototype: Node 24 (`.nvmrc`), pnpm 12 (`packageManager` in `package.json`).
 - Keep dependencies few. Each one in `app/pubspec.yaml` carries a comment saying why it is there.
 
+## Branches
+
+- `main` is production. Release builds come from it, and it only receives merges from `develop`.
+- `develop` is where work comes together. Every feature or fix branch starts from `develop`, and its PR targets `develop`.
+- Merge PRs with a regular merge commit (`gh pr merge --merge`), never squash or rebase, so the history stays complete.
+
 ## Rules
 
 - The local database is the source of truth. Normal use must never require a network connection.

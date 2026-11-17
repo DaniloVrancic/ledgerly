@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The one-colour icon for Android 13 themed icons. The system tints it, so only the shape
+     and its transparency count: the ledger at half strength, the rising line solid. Same
+     placement as ic_launcher_foreground.xml. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.6"
+        android:scaleY="0.6"
+        android:translateX="24"
+        android:translateY="22.8">
+        <group
+            android:scaleX="0.94"
+            android:scaleY="0.94"
+            android:translateX="2.88"
+            android:translateY="4.32">
+            <path
+                android:fillAlpha="0.5"
+                android:fillColor="#ffffff"
+                android:pathData="M9,70 L48,50.5 L87,70 L87,73.5 L48,93 L9,73.5 Z" />
+        </group>
+        <path
+            android:pathData="M21,60 L37,40 L52,50 L78,16 M63,16 H78 V31"
+            android:strokeColor="#ffffff"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:strokeWidth="8" />
+    </group>
+</vector>
