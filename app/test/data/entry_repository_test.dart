@@ -287,6 +287,70 @@ void main() {
     expect(await l.entries.watchEntries(const EntryQuery()).first, isEmpty);
   });
 
+  group('everyday spending', () {
+    Future<EverydaySpending> window() => l.entries.watchEverydaySpending('2026-07-30', '2026-10-29').first;
+
+    test('expenses minus refunds; transfers and balance checks never count', () async {
+      final (id, _) = await l.entries.addEntry(
+        isExpense: true,
+        accountId: l.bank,
+        amountMinor: 8500,
+        categoryId: 'groceries',
+      );
+      await l.entries.addRefund(ofEntryId: id, amountMinor: 2000);
+      await l.entries.addTransfer(fromAccountId: l.bank, toAccountId: l.cash, amountMinor: 5000);
+      final before = await l.balance(l.bank);
+      await l.entries.reconcile(
+        accountId: l.bank,
+        realBalanceMinor: before - 1200,
+        currentBalanceMinor: before,
+      );
+      expect(await window(), (spentMinor: 6500, firstDay: '2026-10-29'));
+    });
+
+    test('monthly repeats are left out, even once stopped; weekly ones stay in', () async {
+      Future<String> paid(String title, Every every, int amount) async {
+        final id = await l.repeats.create(
+          title: title,
+          kind: 'expense',
+          categoryId: 'rent',
+          accountId: l.bank,
+          amountMinor: amount,
+          every: every,
+          nextDay: '2026-10-29',
+        );
+        await l.repeats.markPaid(id);
+        return id;
+      }
+
+      final rent = await paid('Rent', Every.monthly, 46000);
+      await paid('Cleaner', Every.weekly, 3000);
+      expect((await window()).spentMinor, 3000);
+      await l.repeats.stop(rent);
+      expect((await window()).spentMinor, 3000);
+    });
+
+    test('an entry before the window does not count but is the first day', () async {
+      await l.entries.addEntry(
+        isExpense: true,
+        accountId: l.bank,
+        amountMinor: 4000,
+        categoryId: 'groceries',
+        day: '2026-03-01',
+      );
+      expect(await window(), (spentMinor: 0, firstDay: '2026-03-01'));
+    });
+
+    test('nothing recorded', () async {
+      expect(await window(), (spentMinor: 0, firstDay: null));
+    });
+
+    test('an amount saved for later counts as spending', () async {
+      await l.entries.addLater(accountId: l.cash, amountMinor: 1955);
+      expect((await window()).spentMinor, 1000, reason: '19.55 KM is €10.00');
+    });
+  });
+
   test('rules are enforced', () async {
     expect(
       () => l.entries.addEntry(isExpense: true, accountId: l.bank, amountMinor: 0, categoryId: 'coffee'),

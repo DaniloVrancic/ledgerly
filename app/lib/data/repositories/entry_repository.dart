@@ -89,6 +89,9 @@ class EntryQuery {
   );
 }
 
+/// Spending in a range without monthly and yearly repeats, and the day of the first entry ever.
+typedef EverydaySpending = ({int spentMinor, String? firstDay});
+
 class EntryRepository extends Repository {
   EntryRepository(super.db, super.clock);
 
@@ -490,6 +493,33 @@ class EntryRepository extends Repository {
       .map(_toTotals);
 
   Future<PeriodTotals> totals(String start, String end) => watchTotals(start, end).first;
+
+  /// Normal spending for the payday forecast: expenses minus refunds from [start] to [end],
+  /// leaving out entries paid from monthly or yearly repeats, since those are counted as bills.
+  /// A stopped repeat's entries stay out too. Daily and weekly repeats stay in.
+  Stream<EverydaySpending> watchEverydaySpending(String start, String end) => db
+      .customSelect(
+        '''
+        SELECT
+          COALESCE(-SUM(CASE WHEN c.kind = 'expense' AND (r.id IS NULL OR r.every IN ('daily', 'weekly'))
+                             THEN p.base_minor END), 0) AS spent,
+          (SELECT MIN(day) FROM entries WHERE deleted_at IS NULL) AS first_day
+        FROM postings p
+        JOIN entries e ON e.id = p.entry_id
+        LEFT JOIN categories c ON c.id = p.category_id
+        LEFT JOIN repeats r ON r.id = e.repeat_id
+        WHERE e.deleted_at IS NULL AND p.deleted_at IS NULL AND e.day BETWEEN ? AND ?
+        ''',
+        variables: [Variable.withString(start), Variable.withString(end)],
+        readsFrom: {db.postings, db.entries, db.categories, db.repeats},
+      )
+      .watch()
+      .map(
+        (rows) => (
+          spentMinor: rows.first.read<int>('spent'),
+          firstDay: rows.first.readNullable<String>('first_day'),
+        ),
+      );
 
   PeriodTotals _toTotals(List<QueryRow> rows) {
     final spending = <CategoryAmount>[];
