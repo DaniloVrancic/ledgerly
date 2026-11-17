@@ -1,5 +1,6 @@
 // Material theme built from the design tokens, so standard widgets match the design system.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -27,6 +28,8 @@ ThemeData buildTheme(Brightness brightness, AccentChoice accent) {
     outlineVariant: c.borderSubtle,
   );
   final radius = BorderRadius.circular(12);
+  // Styles the theme sets directly start from the platform's font, like the rest of the text.
+  final type = Typography.material2021(platform: defaultTargetPlatform).black;
 
   return ThemeData(
     useMaterial3: true,
@@ -40,7 +43,11 @@ ThemeData buildTheme(Brightness brightness, AccentChoice accent) {
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: c.textPrimary),
+      titleTextStyle: type.titleLarge!.copyWith(
+        fontSize: 22,
+        fontWeight: FontWeight.w600,
+        color: c.textPrimary,
+      ),
       systemOverlayStyle: systemBars(brightness),
     ),
     // Predictive back on Android: the page underneath shows while swiping back.
@@ -100,7 +107,7 @@ ThemeData buildTheme(Brightness brightness, AccentChoice accent) {
       selectedColor: c.surfaceTint,
       side: BorderSide.none,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      labelStyle: TextStyle(color: c.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
+      labelStyle: type.labelLarge!.copyWith(color: c.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
@@ -120,7 +127,7 @@ ThemeData buildTheme(Brightness brightness, AccentChoice accent) {
     ),
     snackBarTheme: SnackBarThemeData(
       backgroundColor: c.surfaceInverse,
-      contentTextStyle: TextStyle(color: c.onInverse, fontSize: 14),
+      contentTextStyle: type.bodyMedium!.copyWith(color: c.onInverse, fontSize: 14),
       actionTextColor: c.onInverse,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: radius),
