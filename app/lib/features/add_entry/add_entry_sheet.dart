@@ -25,6 +25,7 @@ import '../../ui/widgets/amount_keypad.dart';
 import '../../ui/widgets/common.dart';
 import '../../ui/widgets/undo.dart';
 import '../categories/category_picker.dart';
+import '../entries/split_editor.dart';
 import 'chip_order.dart';
 
 enum EntryKind { expense, income, transfer }
@@ -72,12 +73,15 @@ class _AddEntrySheetState extends ConsumerState<AddEntrySheet> {
 
   /// The repeat this title already belongs to. Saving pays its next occurrence.
   Repeat? _existingRepeat;
+
+  /// The parts of a split expense, or null when it goes on one category.
+  List<SplitDraft>? _split;
   List<TitleMemory> _suggestions = const [];
   _Panel _panel = _Panel.none;
   bool _saving = false;
 
   int get _minor => parseAmount(_amount);
-  bool get _needsSave => _more || _remembered || _kind == EntryKind.transfer;
+  bool get _needsSave => _more || _remembered || _kind == EntryKind.transfer || _split != null;
   bool get _isTyping => _textFocus.any((f) => f.hasFocus);
 
   @override
@@ -108,6 +112,7 @@ class _AddEntrySheetState extends ConsumerState<AddEntrySheet> {
     for (final f in _textFocus) {
       f.dispose();
     }
+    _split?.forEach((d) => d.dispose());
     super.dispose();
   }
 
@@ -176,7 +181,8 @@ class _AddEntrySheetState extends ConsumerState<AddEntrySheet> {
       if (!mounted || r == null) return;
       setState(() {
         _existingRepeat = r;
-        _repeat = Every.parse(r.every);
+        // A split never repeats, so it is saved as a one-off.
+        if (_split == null) _repeat = Every.parse(r.every);
         _accountId = r.accountId;
       });
     });
@@ -185,7 +191,7 @@ class _AddEntrySheetState extends ConsumerState<AddEntrySheet> {
   void _pickTitle(TitleMemory m) {
     setState(() => _remember(m));
     // With an amount already typed, a title saves at once, like a chip.
-    if (_minor > 0 && !_more) WidgetsBinding.instance.addPostFrameCallback((_) => _save());
+    if (_minor > 0 && !_more && _split == null) WidgetsBinding.instance.addPostFrameCallback((_) => _save());
   }
 
   void _pickChip(String categoryId) {
@@ -199,6 +205,7 @@ class _AddEntrySheetState extends ConsumerState<AddEntrySheet> {
 
   void _setKind(EntryKind kind) => setState(() {
     _kind = kind;
+    _setSplit(false);
     _categoryId = null;
     _remembered = false;
     _existingRepeat = null;
@@ -206,6 +213,13 @@ class _AddEntrySheetState extends ConsumerState<AddEntrySheet> {
     _suggestions = const [];
     _panel = _Panel.none;
   });
+
+  /// Turning a split on starts with the chosen category and the whole amount, plus an empty part.
+  void _setSplit(bool on) {
+    _split?.forEach((d) => d.dispose());
+    _split = on ? [SplitDraft(categoryId: _categoryId, amountMinor: _minor), SplitDraft()] : null;
+    if (on) _repeat = null;
+  }
 
   Future<void> _saveLater() async {
     if (_minor <= 0) return;
@@ -237,6 +251,24 @@ class _AddEntrySheetState extends ConsumerState<AddEntrySheet> {
         );
         await settings.write(SettingKeys.lastTransfer, '${account.id}|${to.id}');
         _finish('Transfer saved, ${formatMoney(_minor, account.currency)} to ${to.name}', undo);
+        return;
+      }
+      final split = _split;
+      if (split != null) {
+        final parts = splitPartsOf(split, _minor);
+        if (parts == null) throw 'Divide the whole amount, with a category for each part.';
+        await settings.write(SettingKeys.lastAccountId, account.id);
+        final (id, undo) = await entries.addSplit(
+          accountId: account.id,
+          parts: parts,
+          title: _title.text,
+          merchant: _merchant.text,
+          note: _note.text,
+          day: _day,
+        );
+        final title = (await entries.find(id))?.displayTitle ?? 'Split purchase';
+        if (!mounted) return;
+        _finish('Saved ${formatMoney(_minor, account.currency)}, $title, split across ${parts.length}', undo);
         return;
       }
       final categoryId = _categoryId;
@@ -490,7 +522,11 @@ class _AddEntrySheetState extends ConsumerState<AddEntrySheet> {
     );
   }
 
-  bool get _canSave => _minor > 0 && !_saving && (_kind == EntryKind.transfer || _categoryId != null);
+  bool get _canSave =>
+      _minor > 0 &&
+      !_saving &&
+      (_kind == EntryKind.transfer ||
+          (_split == null ? _categoryId != null : splitPartsOf(_split!, _minor) != null));
 
   void _togglePanel(_Panel p) => setState(() => _panel = _panel == p ? _Panel.none : p);
 
@@ -611,6 +647,9 @@ class _AddEntrySheetState extends ConsumerState<AddEntrySheet> {
       case _Panel.none:
       case _Panel.allCategories:
         if (_kind == EntryKind.transfer) return _transferNote(c, account);
+        if (_split != null) {
+          return Text('Choose a category for each part under More details.', style: context.text.bodySmall);
+        }
         return _chips(c, account);
     }
   }
@@ -693,12 +732,14 @@ class _AddEntrySheetState extends ConsumerState<AddEntrySheet> {
                 for (final e in Every.values) ButtonSegment(value: e, label: Text(e.label)),
               ],
               selected: {_repeat},
-              onSelectionChanged: (s) => setState(() => _repeat = s.first),
+              onSelectionChanged: _split != null ? null : (s) => setState(() => _repeat = s.first),
             ),
             Padding(
               padding: const EdgeInsets.only(top: 4, bottom: 12),
               child: Text(
-                _existingRepeat != null && _repeat != null
+                _split != null
+                    ? 'A split is saved as a one-off.'
+                    : _existingRepeat != null && _repeat != null
                     ? 'Already repeats. Choose Never to save this as a one-off.'
                     : _repeat == null
                     ? 'Set a repeat to make the next one a single tap.'
@@ -717,6 +758,24 @@ class _AddEntrySheetState extends ConsumerState<AddEntrySheet> {
             const SizedBox(height: 12),
           ],
           if (_kind == EntryKind.expense) ...[
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Split across categories'),
+              value: _split != null,
+              onChanged: (on) => setState(() => _setSplit(on)),
+            ),
+            if (_split != null) ...[
+              SplitEditor(
+                parts: _split!,
+                totalMinor: _minor,
+                currency: _currency,
+                accountId: _account(_accountId)!.id,
+                onChanged: () => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+          if (_kind == EntryKind.expense && _split == null) ...[
             TextField(
               controller: _share,
               focusNode: _textFocus[2],

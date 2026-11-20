@@ -4,6 +4,7 @@
 //   Income          Bank +2,000 on Salary
 //   Transfer        Bank −100, Savings +100, no category
 //   Refund          Card +20 on the original category, so spending goes down
+//   Split           Bank −30 on Groceries, Bank −12.50 on Household
 //   My share        Bank −25 on Dining, Bank −15 and Owed to me +15 with no category
 //   Repayment       Owed to me −15, Bank +15, no category
 //   Balance check   Cash −12 on Untracked, which reports leave out
@@ -147,6 +148,107 @@ List<PostingDraft> refundPostings({
       currency: currency,
       baseMinor: toBase(amountMinor, currency),
     ),
+  ];
+}
+
+/// One part of a split expense, in the account's currency.
+class SplitPart {
+  const SplitPart(this.categoryId, this.amountMinor);
+
+  final String categoryId;
+  final int amountMinor;
+}
+
+/// Divides [total] in proportion to [weights] so the results add up exactly to [total].
+/// The cents left over go to the largest remainders; ties go to the earlier weight.
+List<int> allocate(int total, List<int> weights) {
+  if (weights.isEmpty || weights.any((w) => w <= 0)) {
+    throw RuleException('Each part needs an amount above zero.');
+  }
+  final sum = weights.fold(0, (s, w) => s + w);
+  final sign = total < 0 ? -1 : 1;
+  final whole = total.abs();
+  final out = [for (final w in weights) whole * w ~/ sum];
+  final order = List.generate(weights.length, (i) => i)
+    ..sort((a, b) {
+      final r = (whole * weights[b] % sum).compareTo(whole * weights[a] % sum);
+      return r != 0 ? r : a.compareTo(b);
+    });
+  var left = whole - out.fold(0, (s, x) => s + x);
+  for (final i in order) {
+    if (left == 0) break;
+    out[i] += 1;
+    left -= 1;
+  }
+  return [for (final x in out) sign * x];
+}
+
+void _checkParts(List<SplitPart> parts) {
+  if (parts.isEmpty || parts.any((p) => p.amountMinor <= 0)) {
+    throw RuleException('Each part needs an amount above zero.');
+  }
+  if (parts.map((p) => p.categoryId).toSet().length != parts.length) {
+    throw RuleException('Each part needs a different category.');
+  }
+}
+
+/// An expense divided across categories, all on one account. The EUR value of the whole payment
+/// is frozen once and divided over the parts, so nothing is lost to rounding. [baseMinor] keeps
+/// an earlier frozen value when the parts of a recorded entry change but its total does not.
+List<PostingDraft> splitPostings({
+  required String accountId,
+  required String currency,
+  required int amountMinor,
+  required List<SplitPart> parts,
+  int? baseMinor,
+}) {
+  _requirePositive(amountMinor);
+  _checkParts(parts);
+  if (parts.fold(0, (s, p) => s + p.amountMinor) != amountMinor) {
+    throw RuleException('The parts must add up to the amount.');
+  }
+  final bases = allocate(baseMinor ?? toBase(amountMinor, currency), [for (final p in parts) p.amountMinor]);
+  return [
+    for (final (i, p) in parts.indexed)
+      PostingDraft(
+        accountId: accountId,
+        categoryId: p.categoryId,
+        amountMinor: -p.amountMinor,
+        currency: currency,
+        baseMinor: -bases[i],
+      ),
+  ];
+}
+
+/// Money back for a split expense, divided over its categories in proportion to the parts.
+List<PostingDraft> splitRefundPostings({
+  required String accountId,
+  required String currency,
+  required int amountMinor,
+  required List<SplitPart> parts,
+}) {
+  _requirePositive(amountMinor);
+  _checkParts(parts);
+  final amounts = allocate(amountMinor, [for (final p in parts) p.amountMinor]);
+  final weights = [for (final a in amounts) a > 0 ? a : 0];
+  final bases = List.filled(parts.length, 0);
+  final used = [
+    for (var i = 0; i < parts.length; i++)
+      if (weights[i] > 0) i,
+  ];
+  final usedBases = allocate(toBase(amountMinor, currency), [for (final i in used) weights[i]]);
+  for (final (k, i) in used.indexed) {
+    bases[i] = usedBases[k];
+  }
+  return [
+    for (final i in used)
+      PostingDraft(
+        accountId: accountId,
+        categoryId: parts[i].categoryId,
+        amountMinor: amounts[i],
+        currency: currency,
+        baseMinor: bases[i],
+      ),
   ];
 }
 

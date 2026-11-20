@@ -61,6 +61,22 @@ class EntryView {
     return -postings.where((p) => p.categoryId != null).fold(0, (s, p) => s + p.amountMinor);
   }
 
+  /// What counts in the categories [include] accepts, in EUR. For lists filtered by category.
+  int countedBaseMinorWhere(bool Function(String categoryId) include) {
+    if (type == EntryType.transfer || type == EntryType.adjustment) return 0;
+    return parts.where((p) => include(p.categoryId!)).fold(0, (s, p) => s + p.baseMinor);
+  }
+
+  /// Postings with a category: one for a simple entry, one per part for a split.
+  List<Posting> get parts => postings.where((p) => p.categoryId != null).toList();
+
+  /// More than one categorised posting: a split, or the refund of one.
+  bool get hasParts => parts.length > 1;
+
+  /// An expense whose amount is divided over more than one category, without "Owed to me".
+  bool get isSplit =>
+      type == EntryType.expense && hasParts && postings.every((p) => p.accountId != SystemIds.owedToMe);
+
   /// Only simple entries with one posting can change amount or account in place.
   bool get isSimple => postings.length == 1;
 
