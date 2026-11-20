@@ -132,6 +132,33 @@ class EntryRepository extends Repository {
     );
   }
 
+  /// An expense divided across several categories on one account. The amount is the sum of the parts.
+  Future<(String, Undo)> addSplit({
+    required String accountId,
+    required List<SplitPart> parts,
+    String? title,
+    String? merchant,
+    String? note,
+    String? day,
+  }) async {
+    final account = await _account(accountId);
+    await _checkExpenseCategories(parts);
+    final postings = splitPostings(
+      accountId: accountId,
+      currency: account.currency,
+      amountMinor: parts.fold(0, (s, p) => s + p.amountMinor),
+      parts: parts,
+    );
+    return _insert(
+      type: EntryType.expense,
+      day: day ?? today,
+      title: _blankToNull(title) ?? 'Split purchase',
+      merchant: merchant,
+      note: note,
+      postings: postings,
+    );
+  }
+
   /// Saved with only an amount. It waits in Needs Review and counts as spending meanwhile.
   Future<(String, Undo)> addLater({
     required String accountId,
@@ -189,12 +216,19 @@ class EntryRepository extends Repository {
     if (of == null || of.type != EntryType.expense || of.categoryId == null) {
       throw RuleException('Only an expense can be refunded.');
     }
-    final postings = refundPostings(
-      accountId: of.accountId,
-      currency: of.currency,
-      amountMinor: amountMinor,
-      categoryId: of.categoryId!,
-    );
+    final postings = of.isSplit
+        ? splitRefundPostings(
+            accountId: of.accountId,
+            currency: of.currency,
+            amountMinor: amountMinor,
+            parts: [for (final p in of.parts) SplitPart(p.categoryId!, -p.amountMinor)],
+          )
+        : refundPostings(
+            accountId: of.accountId,
+            currency: of.currency,
+            amountMinor: amountMinor,
+            categoryId: of.categoryId!,
+          );
     return _insert(
       type: EntryType.refund,
       day: day ?? today,
@@ -276,6 +310,7 @@ class EntryRepository extends Repository {
   /// Moves an entry to another category. Finishing a Needs Review entry does exactly this.
   Future<Undo> changeCategory(String id, String categoryId) async {
     final before = (await find(id))!;
+    if (before.hasParts) throw RuleException('Edit the parts of this split instead.');
     await db.transaction(() async {
       await (db.update(db.postings)..where((p) => p.entryId.equals(id) & p.categoryId.isNotNull())).write(
         PostingsCompanion(categoryId: Value(categoryId), updatedAt: Value(now)),
@@ -309,6 +344,39 @@ class EntryRepository extends Repository {
     return () => _restore(before);
   }
 
+  /// Replaces the parts of an expense, so it can be split, re-split, or made simple again with
+  /// one part. The total may change. When it doesn't, the frozen EUR value is kept.
+  Future<Undo> changeSplit(String id, List<SplitPart> parts) async {
+    final before = (await find(id))!;
+    if (before.type != EntryType.expense ||
+        before.needsReview ||
+        before.postings.any((p) => p.accountId == SystemIds.owedToMe)) {
+      throw RuleException('Only an expense can be split.');
+    }
+    await _checkExpenseCategories(parts);
+    final amount = parts.fold(0, (s, p) => s + p.amountMinor);
+    final oldAmount = -before.amountMinor;
+    final postings = splitPostings(
+      accountId: before.accountId,
+      currency: before.currency,
+      amountMinor: amount,
+      parts: parts,
+      baseMinor: amount == oldAmount ? -before.parts.fold(0, (s, p) => s + p.baseMinor) : null,
+    );
+    final added = <String>[];
+    await db.transaction(() async {
+      await (db.update(db.postings)..where((p) => p.entryId.equals(id) & p.deletedAt.isNull())).write(
+        PostingsCompanion(deletedAt: Value(now), updatedAt: Value(now)),
+      );
+      added.addAll(await _insertPostings(id, postings));
+      await _touch(id);
+    });
+    return () => db.transaction(() async {
+      await (db.delete(db.postings)..where((p) => p.id.isIn(added))).go();
+      await _restore(before);
+    });
+  }
+
   /// Deletes an entry. It is kept as deleted, so Undo can bring it back and a sync can send it.
   Future<Undo> delete(String id) async {
     await _setDeleted(id, now);
@@ -316,13 +384,15 @@ class EntryRepository extends Repository {
   }
 
   /// What is recorded on an account from [start] to [end], transfers and balance checks
-  /// included, for comparing with a bank statement. Amounts are in the account's currency.
+  /// included, for comparing with a bank statement. Amounts are in the account's currency, one
+  /// per entry, so a split or a shared payment matches on what left the account.
   Future<List<ExistingEntry>> signedAmountsOnAccount(String accountId, String start, String end) async {
     final rows = await db
         .customSelect(
-          'SELECT e.id AS id, e.day AS day, p.amount_minor AS amount FROM postings p '
+          'SELECT e.id AS id, e.day AS day, SUM(p.amount_minor) AS amount FROM postings p '
           'JOIN entries e ON e.id = p.entry_id '
-          'WHERE p.account_id = ? AND e.deleted_at IS NULL AND p.deleted_at IS NULL AND e.day BETWEEN ? AND ?',
+          'WHERE p.account_id = ? AND e.deleted_at IS NULL AND p.deleted_at IS NULL AND e.day BETWEEN ? AND ? '
+          'GROUP BY e.id',
           variables: [Variable.withString(accountId), Variable.withString(start), Variable.withString(end)],
           readsFrom: {db.postings, db.entries},
         )
@@ -445,9 +515,12 @@ class EntryRepository extends Repository {
     if (search.isNotEmpty) {
       final amount = amountQuery(search);
       if (amount != null) {
+        // One posting, such as a part of a split, or the whole amount on one account.
         add(
-          'EXISTS (SELECT 1 FROM postings p WHERE p.entry_id = e.id AND p.deleted_at IS NULL AND ABS(p.amount_minor) = ?)',
-          [amount],
+          '(EXISTS (SELECT 1 FROM postings p WHERE p.entry_id = e.id AND p.deleted_at IS NULL AND ABS(p.amount_minor) = ?) '
+          'OR EXISTS (SELECT 1 FROM postings p WHERE p.entry_id = e.id AND p.deleted_at IS NULL '
+          'GROUP BY p.account_id HAVING ABS(SUM(p.amount_minor)) = ?))',
+          [amount, amount],
         );
       } else {
         for (final word in fold(search).split(RegExp(r'\s+'))) {
@@ -627,6 +700,8 @@ class EntryRepository extends Repository {
                COUNT(*) AS n, SUM(e.day >= ?) AS recent, MAX(e.day || ':' || ABS(p.amount_minor)) AS last
         FROM entries e JOIN postings p ON p.entry_id = e.id AND p.category_id IS NOT NULL AND p.deleted_at IS NULL
         WHERE e.deleted_at IS NULL AND e.title IS NOT NULL AND e.needs_review = 0 AND e.type IN ('expense', 'income')
+          AND (SELECT COUNT(*) FROM postings q
+               WHERE q.entry_id = e.id AND q.category_id IS NOT NULL AND q.deleted_at IS NULL) = 1
         GROUP BY lower(e.title), e.type, p.category_id, p.account_id
         ''',
         variables: [Variable.withString(Day.add(today, -90))],
@@ -715,26 +790,44 @@ class EntryRepository extends Repository {
               updatedAt: now,
             ),
           );
-      for (final p in postings) {
-        await db
-            .into(db.postings)
-            .insert(
-              PostingsCompanion.insert(
-                id: newId(),
-                entryId: id,
-                accountId: p.accountId,
-                categoryId: Value(p.categoryId),
-                amountMinor: p.amountMinor,
-                currency: p.currency,
-                baseMinor: p.baseMinor,
-                createdAt: now,
-                updatedAt: now,
-              ),
-            );
-      }
+      await _insertPostings(id, postings);
     });
     // Undoing a save removes the entry entirely, so a repeat can be paid again for the same date.
     return (id, () => purge(id));
+  }
+
+  /// Writes an entry's postings and returns their new ids.
+  Future<List<String>> _insertPostings(String entryId, List<PostingDraft> postings) async {
+    final ids = <String>[];
+    for (final p in postings) {
+      final postingId = newId();
+      await db
+          .into(db.postings)
+          .insert(
+            PostingsCompanion.insert(
+              id: postingId,
+              entryId: entryId,
+              accountId: p.accountId,
+              categoryId: Value(p.categoryId),
+              amountMinor: p.amountMinor,
+              currency: p.currency,
+              baseMinor: p.baseMinor,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      ids.add(postingId);
+    }
+    return ids;
+  }
+
+  /// Every part must be on a live expense category, so a split never counts as income.
+  Future<void> _checkExpenseCategories(List<SplitPart> parts) async {
+    final ids = parts.map((p) => p.categoryId).toSet();
+    final found = await (db.select(
+      db.categories,
+    )..where((c) => c.id.isIn(ids) & c.kind.equals('expense') & c.deletedAt.isNull())).get();
+    if (found.length != ids.length) throw RuleException('Each part needs a spending category.');
   }
 
   /// Removes an entry for good. Only used to undo a save that has just happened.

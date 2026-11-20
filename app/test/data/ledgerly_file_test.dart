@@ -6,6 +6,7 @@ import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ledgerly/data/export/ledgerly_file.dart';
 import 'package:ledgerly/data/repositories/settings_repository.dart';
+import 'package:ledgerly/domain/postings.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'test_ledger.dart';
@@ -70,6 +71,19 @@ void main() {
       'attachments/dog.png',
     );
     expect(db.select("SELECT COUNT(*) FROM settings WHERE key = 'backup_folder'").first.values.first, 0);
+  });
+
+  test('a split keeps its parts and their frozen EUR values', () async {
+    final (id, _) = await l.entries.addSplit(
+      accountId: l.cash,
+      parts: const [SplitPart('groceries', 333), SplitPart('household', 667)],
+    );
+    final before = [for (final p in (await l.entries.find(id))!.parts) p.baseMinor]..sort();
+    final preview = await read(await build());
+    final db = sqlite3.open(preview.database.path, mode: OpenMode.readOnly);
+    addTearDown(db.close);
+    final rows = db.select('SELECT base_minor FROM postings WHERE entry_id = ? ORDER BY base_minor', [id]);
+    expect([for (final r in rows) r['base_minor']], before);
   });
 
   test('pictures are put back in place before the data is used', () async {

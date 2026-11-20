@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ledgerly/core/money.dart';
 import 'package:ledgerly/domain/postings.dart';
 import 'package:ledgerly/domain/system_ids.dart';
 
@@ -118,5 +119,85 @@ void main() {
       PostingDraft(accountId: 'a', categoryId: null, amountMinor: -100, currency: 'EUR', baseMinor: -100),
     ];
     expect(() => checkBalanced(bad), throwsA(isA<RuleException>()));
+  });
+
+  group('split', () {
+    test('allocate divides exactly, the largest remainders first', () {
+      expect(allocate(1000, [1, 1, 1]), [334, 333, 333]);
+      expect(allocate(-1000, [1, 1, 1]), [-334, -333, -333]);
+      expect(allocate(511, [3000, 1250]).fold(0, (s, x) => s + x), 511);
+      expect(allocate(0, [5, 7]), [0, 0]);
+      expect(() => allocate(100, [1, 0]), throwsA(isA<RuleException>()));
+    });
+
+    test('a EUR split counts each part on its own category', () {
+      final ps = splitPostings(
+        accountId: 'bank',
+        currency: 'EUR',
+        amountMinor: 4250,
+        parts: const [SplitPart('groceries', 3000), SplitPart('household', 1250)],
+      );
+      expect([for (final p in ps) p.categoryId], ['groceries', 'household']);
+      expect([for (final p in ps) p.baseMinor], [-3000, -1250]);
+      expect(onAccount(ps, 'bank'), -4250);
+      checkBalanced(ps);
+    });
+
+    test('a BAM split freezes the whole EUR value and divides it without losing a cent', () {
+      final ps = splitPostings(
+        accountId: 'cash',
+        currency: 'BAM',
+        amountMinor: 1000,
+        parts: const [SplitPart('groceries', 333), SplitPart('household', 333), SplitPart('cosmetics', 334)],
+      );
+      expect(counted(ps), -toBase(1000, 'BAM'));
+      for (final p in ps) {
+        expect((p.baseMinor - toBase(p.amountMinor, 'BAM')).abs(), lessThanOrEqualTo(1));
+      }
+    });
+
+    test('a kept EUR value is divided instead of a new one', () {
+      final ps = splitPostings(
+        accountId: 'cash',
+        currency: 'BAM',
+        amountMinor: 1000,
+        parts: const [SplitPart('groceries', 500), SplitPart('household', 500)],
+        baseMinor: 512,
+      );
+      expect(counted(ps), -512);
+    });
+
+    test('a split that does not add up, has a zero part or repeats a category is refused', () {
+      List<PostingDraft> split(List<SplitPart> parts, {int amount = 1000}) =>
+          splitPostings(accountId: 'bank', currency: 'EUR', amountMinor: amount, parts: parts);
+      expect(() => split(const [SplitPart('a', 600), SplitPart('b', 300)]), throwsA(isA<RuleException>()));
+      expect(() => split(const [SplitPart('a', 1000), SplitPart('b', 0)]), throwsA(isA<RuleException>()));
+      expect(() => split(const [SplitPart('a', 500), SplitPart('a', 500)]), throwsA(isA<RuleException>()));
+      expect(() => split(const []), throwsA(isA<RuleException>()));
+    });
+
+    test('a refund of a split lowers each category in proportion', () {
+      final ps = splitRefundPostings(
+        accountId: 'bank',
+        currency: 'EUR',
+        amountMinor: 1000,
+        parts: const [SplitPart('groceries', 3000), SplitPart('household', 1000)],
+      );
+      expect(
+        [for (final p in ps) (p.categoryId, p.amountMinor, p.baseMinor)],
+        [('groceries', 750, 750), ('household', 250, 250)],
+      );
+    });
+
+    test('a refund too small to divide leaves out the parts that get nothing', () {
+      final ps = splitRefundPostings(
+        accountId: 'cash',
+        currency: 'BAM',
+        amountMinor: 1,
+        parts: const [SplitPart('groceries', 3000), SplitPart('household', 1000)],
+      );
+      expect(ps.single.categoryId, 'groceries');
+      expect(ps.single.amountMinor, 1);
+    });
   });
 }
