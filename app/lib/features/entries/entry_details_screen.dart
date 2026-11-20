@@ -17,6 +17,7 @@ import '../../ui/widgets/money_text.dart';
 import '../../ui/widgets/undo.dart';
 import '../categories/category_picker.dart';
 import '../repeats/repeat_form.dart';
+import 'split_editor.dart';
 
 class EntryDetailsScreen extends ConsumerStatefulWidget {
   const EntryDetailsScreen({super.key, required this.entryId});
@@ -151,7 +152,41 @@ class _EntryDetailsScreenState extends ConsumerState<EntryDetailsScreen> {
             onChanged: (_) => _saveText(),
           ),
           const SizedBox(height: 12),
-          if (canCategorise) ...[
+          if (v.hasParts) ...[
+            LedgerCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${v.type == EntryType.refund ? 'Refund' : 'Split'} across ${v.parts.length} categories',
+                    style: context.text.label.copyWith(color: c.textSecondary),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final p in v.parts)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          CategoryAvatar.of(book[p.categoryId], size: 24),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(book.fullName(p.categoryId), style: context.text.bodySmall)),
+                          Text(formatMoney(p.amountMinor.abs(), p.currency), style: context.text.label),
+                        ],
+                      ),
+                    ),
+                  if (v.isSplit) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      icon: const LedgerIcon('split', size: 16),
+                      label: const Text('Edit split'),
+                      onPressed: () => _editSplit(v),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ] else if (canCategorise) ...[
             Text('Category', style: context.text.label.copyWith(color: c.textSecondary)),
             const SizedBox(height: 4),
             LedgerCard(
@@ -323,11 +358,21 @@ class _EntryDetailsScreenState extends ConsumerState<EntryDetailsScreen> {
                   );
                 },
               ),
-              if (v.type == EntryType.expense && !v.needsReview && repeat == null && v.categoryId != null)
+              if (v.type == EntryType.expense &&
+                  !v.needsReview &&
+                  repeat == null &&
+                  v.categoryId != null &&
+                  !v.hasParts)
                 OutlinedButton.icon(
                   icon: const LedgerIcon('repeat'),
                   label: const Text('Repeat this'),
                   onPressed: () => openRepeatForm(context, draft: RepeatDraft.fromEntry(v, _title.text)),
+                ),
+              if (v.type == EntryType.expense && !v.needsReview && v.isSimple)
+                OutlinedButton.icon(
+                  icon: const LedgerIcon('split'),
+                  label: const Text('Split this'),
+                  onPressed: () => _editSplit(v),
                 ),
               if (v.type == EntryType.expense && !v.needsReview)
                 OutlinedButton.icon(
@@ -368,7 +413,9 @@ class _EntryDetailsScreenState extends ConsumerState<EntryDetailsScreen> {
   Future<void> _recordRefund(EntryView v) async {
     final amount = await _askAmount(
       'Record a refund',
-      'It lowers ${ref.read(categoryBookProvider).nameOf(v.categoryId)} spending and is never income.',
+      v.isSplit
+          ? 'It lowers spending in each of its categories and is never income.'
+          : 'It lowers ${ref.read(categoryBookProvider).nameOf(v.categoryId)} spending and is never income.',
       v.amountMinor.abs(),
       v.currency,
     );
@@ -379,6 +426,13 @@ class _EntryDetailsScreenState extends ConsumerState<EntryDetailsScreen> {
           .addRefund(ofEntryId: v.id, amountMinor: amount);
       return undo;
     }, 'Refund saved, ${formatMoney(amount, v.currency)}');
+  }
+
+  Future<void> _editSplit(EntryView v) async {
+    final parts = await showSplitSheet(context, entry: v);
+    if (parts == null) return;
+    await _run(() => ref.read(entryRepositoryProvider).changeSplit(v.id, parts), 'Split saved');
+    _amount.text = amountText(parts.fold(0, (s, p) => s + p.amountMinor));
   }
 
   Future<void> _recordRepayment(EntryView v, int owed) async {

@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/category_book.dart';
 import '../../app/providers.dart';
 import '../../core/day.dart';
 import '../../data/repositories/account_repository.dart';
@@ -120,6 +121,13 @@ class EntryList extends ConsumerWidget {
   /// Inside another scrolling screen: the list grows to its full height instead of scrolling.
   final bool embedded;
 
+  /// What an entry adds to its day. Filtered by a category, only that category's parts of a split.
+  int _counted(EntryView v, CategoryBook book) {
+    final category = query.categoryId;
+    if (category == null) return v.countedBaseMinor;
+    return v.countedBaseMinorWhere((id) => id == category || book.topOf(id) == category);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(entriesProvider(query));
@@ -163,7 +171,7 @@ class EntryList extends ConsumerWidget {
                       ),
                     ),
                     MoneyText(
-                      entries.fold(0, (s, v) => s + v.countedBaseMinor),
+                      entries.fold(0, (s, v) => s + _counted(v, book)),
                       sign: true,
                       tone: MoneyTone.auto,
                       style: context.text.label,
