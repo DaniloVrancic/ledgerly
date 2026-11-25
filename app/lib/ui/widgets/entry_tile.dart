@@ -35,6 +35,9 @@ class EntryTile extends StatelessWidget {
       meta = 'Balance check, not counted · $account';
     } else if (view.needsReview) {
       meta = 'Needs a category · $account';
+    } else if (view.hasParts) {
+      meta =
+          '${view.type == EntryType.refund ? 'Refund' : 'Split'} across ${view.parts.length} categories · $account';
     } else if (view.shareMinor != null) {
       meta = 'My share ${formatMoney(view.shareMinor!, view.currency)} · $account';
     } else {
@@ -42,16 +45,24 @@ class EntryTile extends StatelessWidget {
     }
 
     final amount = view.amountMinor;
-    final Widget lead = isTransfer || isCheck
+    final Widget lead = isTransfer || isCheck || view.hasParts
         ? Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(color: c.neutralTint, borderRadius: BorderRadius.circular(8)),
             alignment: Alignment.center,
             child: LedgerIcon(
-              isTransfer ? 'transfer' : 'flag',
+              isTransfer
+                  ? 'transfer'
+                  : isCheck
+                  ? 'flag'
+                  : 'split',
               color: c.neutral,
-              semanticLabel: isTransfer ? 'Transfer' : 'Balance check',
+              semanticLabel: isTransfer
+                  ? 'Transfer'
+                  : isCheck
+                  ? 'Balance check'
+                  : 'Split',
             ),
           )
         : view.needsReview

@@ -26,9 +26,9 @@ dart run build_runner build
 
 | Area | What you can do |
 |---|---|
-| Add | An expense is Add, the amount, one category chip. Titles you typed before are suggested and bring back their subcategory and account, and the six most used titles sit at the top of the sheet. Under More details you can set a repeat, a merchant, your share of a shared payment, and a note. Later saves just the amount, to sort out afterwards. |
+| Add | An expense is Add, the amount, one category chip. Titles you typed before are suggested and bring back their subcategory and account, and the six most used titles sit at the top of the sheet. Under More details you can set a repeat, a merchant, your share of a shared payment, and a note, or split the payment across several categories. Later saves just the amount, to sort out afterwards. |
 | Home | Total balance, with every account one tap away, and how much of it is free to use after savings goals. Lowest before payday estimates the least you will have before the next salary, from what is spendable today, the bills due before it and your normal daily spending, and one tap shows how it is worked out. Home also shows repeats that are due with Mark paid, this month's income, spending, net and savings rate, where the money went, and recent entries. |
-| Entries | Grouped by day with each day's net. Search ignores Bosnian diacritics and also finds amounts. Filter by type, category or account, and swipe to delete with Undo. In an entry's details every field saves itself, and you can duplicate it, record a refund, record a repayment, or make it repeat. |
+| Entries | Grouped by day with each day's net. Search ignores Bosnian diacritics and also finds amounts. Filter by type, category or account, and swipe to delete with Undo. In an entry's details every field saves itself, and you can duplicate it, split it or change its parts, record a refund, record a repayment, or make it repeat. |
 | Calendar | On Entries, switch List to Calendar. Each day shows its net, a shade for how much was spent compared with the month's other days, and markers for income, paid and due repeats, planned repeats and high-spending days. A day opens its totals, top category, repeats and entries, and Add on this day. Year shows twelve months shaded day by day; a month opens its grid. |
 | Insights | Any month compared with the one before and with the usual level: income, spending, net, savings rate, spending per category with its share of income, income per source, a six-month chart, and a few plain observations. Every figure opens its entries. |
 | Repeats | Daily, weekly, monthly or yearly. A repeat turns Due on its date and waits until you mark it paid or skip it. When the amount varies, it asks for this time's amount. Typing a title that already repeats pays its next one. Shows the monthly and yearly cost of subscriptions. |
@@ -48,6 +48,7 @@ They live in `lib/domain/postings.dart` and are covered by tests.
 - Money is stored as integer minor units, never as decimals. Each posting keeps its own currency and its EUR value, frozen when it is recorded. BAM is pegged at 1 EUR = 1.95583 KM.
 - Each entry becomes postings. Income and spending only ever come from postings with a category, so a transfer can never count.
 - Refunds go back on the expense's category and lower spending there. They are never income.
+- A split payment is one entry with one posting per part on the same account. The whole payment's EUR value is frozen once and divided over the parts, so nothing is lost to rounding, and a refund of a split lowers each of its categories in proportion.
 - My share: only your part of a shared payment counts as spending. The rest is "Owed to me" until it is repaid, and the repayment is not income.
 - A balance check saves the difference on Untracked, which reports leave out.
 - Balances are never stored. They are always calculated from the postings.
@@ -116,5 +117,5 @@ flutter test tool/render_icons.dart
 ## Not built yet
 
 - The notebook, reports and monthly close.
-- Splitting one payment across several categories, and purchases in a third currency. The postings model supports both; only the screens are missing.
+- Purchases in a third currency. The postings model supports it; only the screens are missing.
 - The home-screen widget and a read-only desktop copy.
